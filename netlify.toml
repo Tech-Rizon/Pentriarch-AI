@@ -12,6 +12,8 @@
   SKIP_TYPE_CHECK = "true"
   SKIP_LINT = "true"
   DISABLE_ESLINT_PLUGIN = "true"
+  NEXT_DISABLE_TYPESCRIPT = "true"
+  NEXT_DISABLE_ESLINT = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

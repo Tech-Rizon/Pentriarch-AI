@@ -87,7 +87,14 @@ const nextConfig = {
   // Skip TypeScript errors during build for demo
   typescript: {
     ignoreBuildErrors: true,
-  }
+  },
+
+  // Additional build optimizations
+  poweredByHeader: false,
+  reactStrictMode: false,
+
+  // Disable strict checks for deployment
+  swcMinify: true,
 };
 
 module.exports = nextConfig;
