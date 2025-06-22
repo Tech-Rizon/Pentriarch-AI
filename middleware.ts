@@ -1,31 +1,74 @@
 import { createClient } from '@/utils/supabase/middleware'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+
+// ✅ Public routes accessible without login
+const PUBLIC_ROUTES = [
+  '/',                // Home
+  '/auth',            // Login/Register
+  '/docs',            // Public documentation
+  '/privacy',         // Privacy policy
+  '/terms',           // Terms and conditions
+  '/api/health',      // API status or uptime
+  '/unauthorized',    // Fallback for denied access
+  '/invite',          // Optional invite-only flow
+]
+
+// ✅ Role-based protected routes
+const ROLE_PROTECTED_ROUTES: { path: string; allowedRoles: string[] }[] = [
+  { path: '/settings', allowedRoles: ['admin'] },
+  { path: '/admin', allowedRoles: ['admin'] },
+  { path: '/dashboard', allowedRoles: ['admin', 'user'] },
+]
 
 export async function middleware(request: NextRequest) {
   try {
-    // Create a Supabase client configured to use cookies
+    const { pathname } = request.nextUrl
+
+    // ✅ Check if current route is public
+    const isPublic = PUBLIC_ROUTES.some((path) =>
+      pathname === path || pathname.startsWith(path + '/')
+    )
+
+    // ✅ Create Supabase client bound to request cookies
     const { supabase, response } = createClient(request)
 
-    // Refresh session if expired - required for Server Components
-    await supabase.auth.getUser()
+    // ✅ Refresh the session
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
+    // ✅ If user is not logged in and visiting a protected route, redirect
+    if (!user && !isPublic) {
+      return NextResponse.redirect(new URL('/auth', request.url))
+    }
+
+    // ✅ Role-based route protection
+    if (user) {
+      const matched = ROLE_PROTECTED_ROUTES.find(({ path }) =>
+        pathname === path || pathname.startsWith(path + '/')
+      )
+
+      if (matched) {
+        const role = user.user_metadata?.role || 'guest'
+        const isAllowed = matched.allowedRoles.includes(role)
+
+        if (!isAllowed) {
+          return NextResponse.redirect(new URL('/unauthorized', request.url))
+        }
+      }
+    }
+
+    // ✅ All good
     return response
   } catch (e) {
-    // If you are here, a Supabase client could not be created!
-    // This is likely because you have not set up environment variables.
-    console.error('Supabase client creation failed:', e)
+    console.error('🛑 Supabase middleware error:', e)
     return new Response('Internal Server Error', { status: 500 })
   }
 }
 
+// ✅ Apply to all except static/image assets
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
