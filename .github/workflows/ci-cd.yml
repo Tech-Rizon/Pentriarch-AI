@@ -7,36 +7,41 @@ on:
     branches: [ main ]
 
 env:
+  # Supabase / App secrets from GitHub Settings > Secrets
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+  NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
-  # ===== QUALITY ASSURANCE =====
   quality-checks:
     name: 🔍 Quality Assurance
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 🏗️ Setup Bun
         uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install deps
         run: bun install
 
-      - name: 🔧 Type checking
-        run: bunx tsc --noEmit
-        continue-on-error: true
-
-      - name: 🧹 Linting (Biome)
+      - name: 🧹 Lint
         run: bun run lint
         continue-on-error: true
 
-      - name: 🏗️ Build check
+      - name: 🔧 Typecheck
+        run: bunx tsc --noEmit
+        continue-on-error: true
+
+      - name: 🏗️ Build
         run: bun run build
         env:
           SKIP_TYPE_CHECK: true
@@ -48,26 +53,17 @@ jobs:
           echo "Bundle size analysis:"
           du -sh .next/ 2>/dev/null || echo "Build directory not found"
 
-  # ===== SECURITY SCAN =====
   security-scan:
     name: 🛡️ Security Scan
     runs-on: ubuntu-latest
     needs: quality-checks
-
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: 📦 Install dependencies
-        run: bun install
-
-      - name: 🔍 Dependency vulnerability scan
-        run: |
-          bunx audit || echo "Audit completed with warnings"
-
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: |
+          echo "🔍 Scanning dependencies"
+          bunx audit || echo "⚠️ Audit completed with warnings"
       - name: 📋 Security checklist
         run: |
           echo "🔒 Security Checklist:"
@@ -77,158 +73,95 @@ jobs:
           echo "✅ RBAC system active"
           echo "✅ Security headers configured"
 
-  # ===== PREVIEW DEPLOYMENT =====
   preview-deployment:
-    name: 🚀 Preview Deployment
+    name: 🚀 Preview Deployment (Vercel)
     runs-on: ubuntu-latest
     needs: [quality-checks, security-scan]
     if: github.event_name == 'pull_request'
-
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: 📦 Install dependencies
-        run: bun install
-
-      - name: 🔧 Install Vercel CLI
-        run: bun add -g vercel@latest
-
-      - name: 🔗 Pull Vercel environment
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: 🏗️ Build project artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: 🚀 Deploy to Vercel (Preview)
-        id: deploy-preview
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun add -g vercel@latest
+      - run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      - id: deploy-preview
         run: |
           DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
-          echo "PREVIEW_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          echo "🚀 Preview deployed to: $DEPLOY_URL"
-
-      - name: 💬 Comment on PR
-        uses: actions/github-script@v7
+          echo "preview_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+      - uses: actions/github-script@v7
         with:
           script: |
-            const deployUrl = '${{ steps.deploy-preview.outputs.PREVIEW_URL }}';
-            const comment = `
-            ## 🚀 Preview Deployment Ready!
-
-            **✅ Your preview deployment is ready:**
-            🔗 **[View Preview](${deployUrl})**
-
-            ### 📊 Deployment Details:
-            - **Status:** ✅ Successful
-            - **Environment:** Preview
-            - **Branch:** \`${{ github.head_ref }}\`
-            - **Commit:** \`${{ github.sha }}\`
-
-            ### 🧪 Test Areas:
-            - [ ] Authentication & RBAC
-            - [ ] AI Console functionality
-            - [ ] Security scanning features
-            - [ ] Performance monitoring
-            - [ ] Mobile responsiveness
-
-            ---
-            *Deployed with ❤️ by Pentriarch AI CI/CD*
-            `;
-
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              body: `🚀 Preview deployed: **[${{ steps.deploy-preview.outputs.preview_url }}](${{ steps.deploy-preview.outputs.preview_url }})**`
             });
 
-  # ===== PRODUCTION DEPLOYMENT =====
   production-deployment:
-    name: 🌟 Production Deployment
+    name: 🌟 Production Deployment (Vercel)
     runs-on: ubuntu-latest
     needs: [quality-checks, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
     environment:
       name: production
-      url: ${{ steps.deploy-production.outputs.PRODUCTION_URL }}
-
+      url: ${{ env.PRODUCTION_URL }}
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: 📦 Install dependencies
-        run: bun install
-
-      - name: 🔧 Install Vercel CLI
-        run: bun add -g vercel@latest
-
-      - name: 🔗 Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: 🏗️ Build project artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: 🚀 Deploy to Vercel (Production)
-        id: deploy-production
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun add -g vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - id: deploy-production
         run: |
           DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "PRODUCTION_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          echo "🌟 Production deployed to: $DEPLOY_URL"
-
-      - name: 🎉 Success notification
+          echo "PRODUCTION_URL=$DEPLOY_URL" >> $GITHUB_ENV
+      - name: 🎉 Summary
         run: |
-          echo "🎉 SUCCESS: Pentriarch AI deployed to production!"
-          echo "🔗 URL: ${{ steps.deploy-production.outputs.PRODUCTION_URL }}"
-          echo "📊 Deployment completed at: $(date)"
+          echo "✅ Deployed: ${{ env.PRODUCTION_URL }}"
 
-  # ===== POST-DEPLOYMENT CHECKS =====
-  post-deployment-checks:
-    name: ✅ Post-Deployment Verification
+  netlify-deployment:
+    name: 🌐 Netlify Deployment (Optional)
     runs-on: ubuntu-latest
-    needs: production-deployment
+    needs: [quality-checks, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
     steps:
-      - name: 🔍 Health check
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun add -g netlify-cli
+      - name: 🚀 Deploy to Netlify
         run: |
-          echo "🔍 Running post-deployment health checks..."
-          DEPLOY_URL="${{ needs.production-deployment.outputs.PRODUCTION_URL }}"
+          netlify deploy --prod \
+            --auth=${{ secrets.NETLIFY_AUTH_TOKEN }} \
+            --site=${{ secrets.NETLIFY_SITE_ID }} \
+            --dir=.next
 
-          # Basic connectivity check
-          if curl -f -s "$DEPLOY_URL" > /dev/null; then
-            echo "✅ Site is accessible"
-          else
-            echo "❌ Site accessibility check failed"
-            exit 1
-          fi
+  notify:
+    name: 📢 Notification Dispatcher
+    runs-on: ubuntu-latest
+    needs: [production-deployment]
+    if: always()
+    steps:
+      - name: 🔔 Notify Slack (if enabled)
+        if: ${{ secrets.SLACK_WEBHOOK != '' }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ needs.production-deployment.result == 'success' && 'good' || 'danger' }}
+          SLACK_MESSAGE: |
+            🚀 *${{ github.workflow }}*
+            🔁 *Branch:* `${{ github.ref_name }}`
+            🔧 *Status:* `${{ needs.production-deployment.result }}`
+            🔗 [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-      - name: 📈 Performance check
+      - name: 🔔 Notify Discord (if enabled)
+        if: ${{ secrets.DISCORD_WEBHOOK != '' }}
         run: |
-          echo "📈 Performance verification completed"
-          echo "✅ All systems operational"
-
-      - name: 🎯 Summary
-        run: |
-          echo "🎯 DEPLOYMENT SUMMARY:"
-          echo "✅ Quality checks passed"
-          echo "✅ Security scan completed"
-          echo "✅ Production deployment successful"
-          echo "✅ Post-deployment verification passed"
-          echo "🚀 Pentriarch AI is live and ready!"
-
-# ===== WORKFLOW SUMMARY =====
-# This CI/CD pipeline provides:
-# 1. 🔍 Automated quality assurance (type checking, linting, build verification)
-# 2. 🛡️ Security scanning and dependency analysis
-# 3. 🚀 Automatic preview deployments for pull requests
-# 4. 🌟 Production deployment on main branch merges
-# 5. ✅ Post-deployment verification and health checks
-# 6. 💬 Automated PR comments with preview links
-# 7. 📊 Comprehensive logging and status reporting
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{
+              "content": "📣 **${{ github.workflow }} - ${{ github.ref_name }}**\nStatus: `${{ needs.production-deployment.result }}`\n🔗 [Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            }' \
+            ${{ secrets.DISCORD_WEBHOOK }}
