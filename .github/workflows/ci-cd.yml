@@ -24,7 +24,7 @@ jobs:
     name: 🔍 Quality Assurance
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout
+      - name: 📅 Checkout
         uses: actions/checkout@v4
 
       - name: 🏗️ Setup Bun
@@ -33,7 +33,7 @@ jobs:
       - name: 📦 Install deps
         run: bun install
 
-      - name: 🧹 Lint
+      - name: 🨹 Lint
         run: bun run lint
         continue-on-error: true
 
@@ -66,7 +66,7 @@ jobs:
           bunx audit || echo "⚠️ Audit completed with warnings"
       - name: 📋 Security checklist
         run: |
-          echo "🔒 Security Checklist:"
+          echo "🔐 Security Checklist:"
           echo "✅ Dependencies scanned"
           echo "✅ Environment variables secured"
           echo "✅ Authentication system implemented"
@@ -144,12 +144,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [production-deployment]
     if: always()
+    env:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     steps:
       - name: 🔔 Notify Slack (if enabled)
-        if: ${{ secrets.SLACK_WEBHOOK != '' }}
+        if: env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ env.SLACK_WEBHOOK }}
           SLACK_COLOR: ${{ needs.production-deployment.result == 'success' && 'good' || 'danger' }}
           SLACK_MESSAGE: |
             🚀 *${{ github.workflow }}*
@@ -158,10 +161,10 @@ jobs:
             🔗 [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: 🔔 Notify Discord (if enabled)
-        if: ${{ secrets.DISCORD_WEBHOOK != '' }}
+        if: env.DISCORD_WEBHOOK != ''
         run: |
           curl -X POST -H "Content-Type: application/json" \
             -d '{
               "content": "📣 **${{ github.workflow }} - ${{ github.ref_name }}**\nStatus: `${{ needs.production-deployment.result }}`\n🔗 [Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
             }' \
-            ${{ secrets.DISCORD_WEBHOOK }}
+            ${{ env.DISCORD_WEBHOOK }}
