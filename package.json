@@ -8,10 +8,12 @@
     "build:deploy": "cross-env SKIP_TYPE_CHECK=true SKIP_LINT=true DISABLE_ESLINT_PLUGIN=true NEXT_DISABLE_TYPESCRIPT=true NEXT_DISABLE_ESLINT=true next build",
     "start": "next start",
     "lint": "bunx biome lint --write && bunx tsc --noEmit",
-    "format": "bunx biome format --write"
+    "format": "bunx biome format --write",
+    "test": "jest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.54.0",
+    "@next/font": "^14.2.15",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -53,18 +55,25 @@
     "@eslint/eslintrc": "^3.3.1",
     "@netlify/plugin-nextjs": "^5.11.3",
     "@types/estree": "^1.0.8",
+    "@types/jest": "^30.0.0",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^20.17.50",
     "@types/phoenix": "^1.6.6",
     "@types/react": "^18.3.22",
     "@types/react-dom": "^18.3.7",
+    "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
     "bippy": "^0.3.16",
     "cross-env": "^7.0.3",
     "eslint": "^9.27.0",
     "eslint-config-next": "15.1.7",
+    "jest": "^30.0.3",
+    "node-mocks-http": "^1.17.2",
     "postcss": "^8.5.3",
+    "supertest": "^7.1.1",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
 }
