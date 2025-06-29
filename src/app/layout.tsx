@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import {  Inter, Fira_Mono } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import ClientBody from "./ClientBody"
 
@@ -7,12 +7,12 @@ import ClientBody from "./ClientBody"
 import { createSSRClient } from "@/utils/supabase/server"
 import { AuthProvider } from "@/providers/AuthProvider"
 
-const geistSans = Inter({
+const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 })
 
-const geistMono = Fira_Mono({
+const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   weight: "400"
