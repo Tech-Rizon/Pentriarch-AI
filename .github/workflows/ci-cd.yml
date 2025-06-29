@@ -106,17 +106,17 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: ${{ env.PRODUCTION_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
       - run: bun install
       - run: bun add -g vercel@latest
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: 🏗️ Build (Vercel CLI)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
       - id: deploy-production
         run: |
-          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
           echo "PRODUCTION_URL=$DEPLOY_URL" >> $GITHUB_ENV
       - name: 🎉 Summary
         run: |
@@ -132,12 +132,16 @@ jobs:
       - uses: oven-sh/setup-bun@v1
       - run: bun install
       - run: bun add -g netlify-cli
+      - run: bun add -D @netlify/plugin-nextjs
+      - run: netlify build           # Will detect and build Next.js with the plugin
       - name: 🚀 Deploy to Netlify
         run: |
           netlify deploy --prod \
             --auth=${{ secrets.NETLIFY_AUTH_TOKEN }} \
             --site=${{ secrets.NETLIFY_SITE_ID }} \
-            --dir=.next
+            --dir=./.netlify/output   # <-- This is the default output for Next.js SSR on Netlify
+
+
 
   notify:
     name: 📢 Notification Dispatcher
