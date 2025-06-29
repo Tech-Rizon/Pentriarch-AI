@@ -50,6 +50,7 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.25.67"
   },
+  
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@eslint/eslintrc": "^3.3.1",
