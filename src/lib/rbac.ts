@@ -320,29 +320,34 @@ export class RBACManager {
     const upgradeTo = userRole === 'free' ? 'Professional' : 'Administrator'
 
     const permissionMessages: Record<Permission, string> = {
+      'scan:basic': 'Basic scanning features',
       'scan:advanced': 'Advanced scanning features',
       'scan:unlimited': 'Unlimited scanning',
       'scan:concurrent': 'Multiple concurrent scans',
       'scan:priority': 'Priority scan queue',
+      'ai:basic': 'Basic AI analysis',
       'ai:advanced': 'Advanced AI analysis',
       'ai:premium': 'Premium AI models',
       'ai:custom_models': 'Custom AI model selection',
       'ai:unlimited_requests': 'Unlimited AI requests',
+      'report:basic': 'Basic reporting features',
       'report:advanced': 'Advanced reporting features',
       'report:export': 'Report export functionality',
       'report:custom_branding': 'Custom report branding',
       'report:white_label': 'White-label reports',
-      'tools:advanced': 'Advanced security tools',
-      'tools:custom': 'Custom tool configurations',
-      'tools:enterprise': 'Enterprise security tools',
-      'data:export': 'Data export capabilities',
-      'data:delete': 'Data deletion permissions',
-      'data:share': 'Data sharing features',
       'admin:users': 'User management',
       'admin:analytics': 'Analytics dashboard',
       'admin:settings': 'System settings',
       'admin:billing': 'Billing management',
-      'admin:system': 'System administration'
+      'admin:system': 'System administration',
+      'tools:basic': 'Basic security tools',
+      'tools:advanced': 'Advanced security tools',
+      'tools:custom': 'Custom tool configurations',
+      'tools:enterprise': 'Enterprise security tools',
+      'data:view': 'View data',
+      'data:export': 'Data export capabilities',
+      'data:delete': 'Data deletion permissions',
+      'data:share': 'Data sharing features'
     }
 
     const featureName = permissionMessages[requiredPermission] || 'This feature'

@@ -39,7 +39,7 @@ export interface WebSocketMessage {
   type: 'scan_progress' | 'container_status' | 'notification' | 'scan_complete' | 'scan_error'
   scanId?: string
   userId?: string
-  data: Record<string, unknown>
+  data: unknown // Accept any object type
   timestamp: string
 }
 
