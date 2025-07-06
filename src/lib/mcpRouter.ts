@@ -1,7 +1,7 @@
 // MCP Router - Model Control Protocol for intelligent AI model selection and routing
 // Manages multiple AI providers (OpenAI, Anthropic, DeepSeek) with fallback logic
 
-interface AIModel {
+export interface AIModel {
   id: string
   name: string
   provider: 'openai' | 'anthropic' | 'deepseek'
@@ -172,7 +172,10 @@ export class MCPRouter {
           const result = await this.callModel(fallbackModel, prompt, systemPrompt)
           return { ...result, model: `${result.model} (fallback)` }
         } catch (fallbackError) {
-          console.error(`Fallback ${fallbackModel.id} failed:`, fallbackError.message)
+          console.error(
+            `Fallback ${fallbackModel.id} failed:`,
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          )
         }
       }
 
@@ -205,11 +208,11 @@ export class MCPRouter {
 
     switch (model.provider) {
       case 'openai':
-        return this.callOpenAI(model, prompt, systemPrompt, apiKey)
+        return this.callOpenAI(model, prompt, apiKey, systemPrompt)
       case 'anthropic':
-        return this.callAnthropic(model, prompt, systemPrompt, apiKey)
+        return this.callAnthropic(model, prompt, apiKey, systemPrompt)
       case 'deepseek':
-        return this.callDeepSeek(model, prompt, systemPrompt, apiKey)
+        return this.callDeepSeek(model, prompt, apiKey, systemPrompt)
       default:
         throw new Error(`Unsupported provider: ${model.provider}`)
     }
