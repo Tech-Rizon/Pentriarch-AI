@@ -91,15 +91,12 @@ export class AIAnalysisEngine {
       }
     } catch (error) {
       console.error('AI Analysis Engine error:', error)
-<<<<<<< HEAD
-      throw new Error(`AI analysis failed: ${error.message}`)
-=======
       if (error instanceof Error) {
         throw new Error(`AI analysis failed: ${error.message}`)
       } else {
         throw new Error('AI analysis failed: Unknown error')
       }
->>>>>>> 640bda3 (Update v1.7.0)
+
     }
   }
 
