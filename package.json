@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 --turbopack",
     "build": "next build",
-    "build:deploy": "cross-env SKIP_TYPE_CHECK=true SKIP_LINT=true DISABLE_ESLINT_PLUGIN=true NEXT_DISABLE_TYPESCRIPT=true NEXT_DISABLE_ESLINT=true next build",
+    "build:deploy": "NEXT_DISABLE_TYPESCRIPT=true NEXT_DISABLE_ESLINT=true next build --no-lint",
     "start": "next start",
     "lint": "bunx biome lint --write && bunx tsc --noEmit",
     "format": "bunx biome format --write",
