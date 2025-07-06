@@ -48,10 +48,10 @@ class DockerManager extends EventEmitter {
       return this.simulateExecution(scanId, command, userId, target)
     } catch (error) {
       console.error(`Failed to execute scan ${scanId}:`, error)
-      await logScanActivity(scanId, userId, 'error', error.message)
+      await logScanActivity(scanId, userId, 'error', (error as Error)?.message || String(error))
       return {
         success: false,
-        error: error.message
+        error: (error as Error)?.message || String(error)
       }
     }
   }
@@ -114,18 +114,19 @@ class DockerManager extends EventEmitter {
       }
     } catch (error) {
       await updateScanStatus(scanId, 'failed')
-      await logScanActivity(scanId, userId, 'error', error.message)
+      await logScanActivity(scanId, userId, 'error', (error as Error)?.message || String(error))
 
-      this.broadcaster.broadcastScanError(scanId, userId, {
-        exitCode: 1,
-        message: error.message
-      })
+  this.broadcaster.broadcastScanError(
+    scanId,
+    userId,
+    { message: (error as Error)?.message || String(error) }
+  )
 
-      return {
-        success: false,
-        error: error.message
-      }
-    }
+  return {
+    success: false,
+    error: (error as Error)?.message || String(error)
+  }
+}
   }
 
   private async simulateProgressiveExecution(
@@ -437,7 +438,7 @@ Scan completed at ${new Date().toLocaleTimeString()}`
         success: false,
         output: '',
         duration: Date.now() - startTime,
-        error: error.message
+        error: (error as Error)?.message || String(error)
       }
     }
   }
