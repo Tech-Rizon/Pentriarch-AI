@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
+<<<<<<< HEAD
 import { createClient } from '@/lib/supabase'
+=======
+import { createClient } from '@supabase/supabase-js'
+import { getErrorMessage } from '@/lib/auth-helpers'
+>>>>>>> 640bda3 (Update v1.7.0)
 
 interface ModelTest {
   id: string
@@ -204,7 +209,11 @@ export async function POST(request: NextRequest) {
           cost: 0,
           score: 0,
           created_at: new Date().toISOString(),
+<<<<<<< HEAD
           error: error.message
+=======
+          error: getErrorMessage(error)
+>>>>>>> 640bda3 (Update v1.7.0)
         })
       }
     }

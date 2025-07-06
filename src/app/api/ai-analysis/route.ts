@@ -110,7 +110,16 @@ export async function POST(req: NextRequest) {
         analysisResult = {
           riskScore: analysisResult.riskScore,
           threatLevel: analysisResult.threatLevel,
+<<<<<<< HEAD
           reasoning: analysisResult.reasoning
+=======
+          reasoning: analysisResult.reasoning,
+          confidenceLevel: analysisResult.confidenceLevel || 0.8,
+          correlatedFindings: analysisResult.correlatedFindings || [],
+          remediationPlan: analysisResult.remediationPlan || [],
+          predictiveInsights: analysisResult.predictiveInsights || [],
+          complianceImpact: analysisResult.complianceImpact || []
+>>>>>>> 640bda3 (Update v1.7.0)
         }
         break
 
@@ -123,7 +132,17 @@ export async function POST(req: NextRequest) {
         // Return only remediation data
         analysisResult = {
           remediationPlan: analysisResult.remediationPlan,
+<<<<<<< HEAD
           correlatedFindings: analysisResult.correlatedFindings
+=======
+          correlatedFindings: analysisResult.correlatedFindings,
+          riskScore: analysisResult.riskScore || 5,
+          confidenceLevel: analysisResult.confidenceLevel || 0.8,
+          threatLevel: analysisResult.threatLevel || 'medium',
+          reasoning: analysisResult.reasoning || ['Remediation analysis completed'],
+          predictiveInsights: analysisResult.predictiveInsights || [],
+          complianceImpact: analysisResult.complianceImpact || []
+>>>>>>> 640bda3 (Update v1.7.0)
         }
         break
 
@@ -136,7 +155,17 @@ export async function POST(req: NextRequest) {
         // Return only predictive insights
         analysisResult = {
           predictiveInsights: analysisResult.predictiveInsights,
+<<<<<<< HEAD
           complianceImpact: analysisResult.complianceImpact
+=======
+          complianceImpact: analysisResult.complianceImpact,
+          riskScore: analysisResult.riskScore || 5,
+          confidenceLevel: analysisResult.confidenceLevel || 0.8,
+          threatLevel: analysisResult.threatLevel || 'medium',
+          reasoning: analysisResult.reasoning || ['Predictive analysis completed'],
+          correlatedFindings: analysisResult.correlatedFindings || [],
+          remediationPlan: analysisResult.remediationPlan || []
+>>>>>>> 640bda3 (Update v1.7.0)
         }
         break
 
@@ -162,7 +191,11 @@ export async function POST(req: NextRequest) {
     console.error('AI Analysis API error:', error)
     return NextResponse.json({
       error: 'AI analysis failed',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : 'Unknown error'
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -277,7 +310,11 @@ export async function GET(req: NextRequest) {
     console.error('AI Analysis GET error:', error)
     return NextResponse.json({
       error: 'Failed to retrieve AI analysis information',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

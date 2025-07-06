@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 import { createSSRClient } from '@/utils/supabase/server'
 
 export default async function TestDatabase() {
   const supabase = await createSSRClient()
+=======
+import { createClient } from '@/utils/supabase/server'
+
+export default async function TestDatabase() {
+  const supabase = createClient()
+>>>>>>> 640bda3 (Update v1.7.0)
 
   // Test database tables
   const tables = ['user_profiles', 'scans', 'reports', 'scan_logs', 'notifications', 'user_settings']

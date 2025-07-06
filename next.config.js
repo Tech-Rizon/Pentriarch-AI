@@ -70,12 +70,25 @@ const nextConfig = {
       use: 'file-loader',
     })
 
+<<<<<<< HEAD
+=======
+    // Additional CSS handling
+    config.module.rules.push({
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader', 'postcss-loader'],
+    })
+
+>>>>>>> 640bda3 (Update v1.7.0)
     return config
   },
 
   // Experimental features for better compatibility
   experimental: {
     // Reserved for future experimental features
+<<<<<<< HEAD
+=======
+    optimizeCss: true,
+>>>>>>> 640bda3 (Update v1.7.0)
   },
 
   // Skip linting during build to focus on showcasing features
@@ -93,8 +106,13 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: false,
 
+<<<<<<< HEAD
   // Disable strict checks for deployment
   swcMinify: true,
+=======
+  // Additional build optimizations for Next.js 15+
+  // swcMinify is now enabled by default in Next.js 15
+>>>>>>> 640bda3 (Update v1.7.0)
 };
 
 module.exports = nextConfig;

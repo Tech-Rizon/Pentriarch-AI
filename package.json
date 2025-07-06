@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 --turbopack",
     "build": "next build",
+<<<<<<< HEAD
     "build:deploy": "cross-env SKIP_TYPE_CHECK=true SKIP_LINT=true DISABLE_ESLINT_PLUGIN=true NEXT_DISABLE_TYPESCRIPT=true NEXT_DISABLE_ESLINT=true next build",
+=======
+    "build:deploy": "NEXT_DISABLE_TYPESCRIPT=true NEXT_DISABLE_ESLINT=true next build --no-lint",
+>>>>>>> 640bda3 (Update v1.7.0)
     "start": "next start",
     "lint": "bunx biome lint --write && bunx tsc --noEmit",
     "format": "bunx biome format --write",
@@ -27,6 +31,10 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
+<<<<<<< HEAD
+=======
+    "@vercel/analytics": "^1.5.0",
+>>>>>>> 640bda3 (Update v1.7.0)
     "anthropic": "^0.0.0",
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
@@ -50,7 +58,10 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.25.67"
   },
+<<<<<<< HEAD
   
+=======
+>>>>>>> 640bda3 (Update v1.7.0)
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@eslint/eslintrc": "^3.3.1",
@@ -64,13 +75,24 @@
     "@types/react-dom": "^18.3.7",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
+<<<<<<< HEAD
     "bippy": "^0.3.16",
     "cross-env": "^7.0.3",
+=======
+    "autoprefixer": "^10.4.21",
+    "bippy": "^0.3.16",
+    "cross-env": "^7.0.3",
+    "css-loader": "^7.1.2",
+>>>>>>> 640bda3 (Update v1.7.0)
     "eslint": "^9.27.0",
     "eslint-config-next": "15.1.7",
     "jest": "^30.0.3",
     "node-mocks-http": "^1.17.2",
     "postcss": "^8.5.3",
+<<<<<<< HEAD
+=======
+    "style-loader": "^4.0.0",
+>>>>>>> 640bda3 (Update v1.7.0)
     "supertest": "^7.1.1",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.4.0",

@@ -1,8 +1,13 @@
 'use client'
 
+<<<<<<< HEAD
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/providers/AuthProvider'
+=======
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+>>>>>>> 640bda3 (Update v1.7.0)
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,6 +16,7 @@ import PromptConsole from '@/components/PromptConsole'
 import ScanDashboard from '@/components/ScanDashboard'
 import SecurityWorkspace from '@/components/SecurityWorkspace'
 import SettingsPage from '@/components/SettingsPage'
+<<<<<<< HEAD
 import { signOut } from '@/lib/supabase'
 
 export default function Dashboard() {
@@ -25,6 +31,50 @@ export default function Dashboard() {
   }, [loading, user, router])
 
   if (loading || !user) {
+=======
+import { getCurrentUser, signOut } from '@/lib/supabase'
+
+export default function Dashboard() {
+  const [user, setUser] = useState<{ id: string; email: string; user_metadata?: { full_name?: string; plan?: string } } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('workspace')
+  const router = useRouter()
+
+  useEffect(() => {
+    loadUser()
+  }, [])
+
+  const loadUser = async () => {
+    try {
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        router.push('/auth')
+        return
+      }
+      setUser(currentUser)
+    } catch (error) {
+      console.error('Failed to load user:', error)
+      router.push('/auth')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Failed to sign out:', error)
+    }
+  }
+
+  const handleSettingsClick = () => {
+    setActiveTab('settings')
+  }
+
+  if (isLoading) {
+>>>>>>> 640bda3 (Update v1.7.0)
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -35,12 +85,20 @@ export default function Dashboard() {
     )
   }
 
+<<<<<<< HEAD
+=======
+  if (!user) {
+    return null // Will redirect to auth
+  }
+
+>>>>>>> 640bda3 (Update v1.7.0)
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Top Navigation */}
       <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
+<<<<<<< HEAD
             <div className="flex items-center space-x-2">
               <Shield className="h-8 w-8 text-emerald-400" />
               <h1 className="text-xl font-bold text-white">Pentriarch AI</h1>
@@ -80,6 +138,49 @@ export default function Dashboard() {
                 <LogOut className="h-4 w-4 mr-1" />
                 Sign Out
               </Button>
+=======
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Shield className="h-8 w-8 text-emerald-400" />
+                <h1 className="text-xl font-bold text-white">Pentriarch AI</h1>
+                <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                  Premium
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-white">{user.email}</p>
+                  <p className="text-xs text-slate-400 capitalize">{user.raw_user_meta_data?.plan || 'Free'} Plan</p>
+                </div>
+                <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-300 hover:text-white"
+                  onClick={handleSettingsClick}
+                >
+                  <Settings className="h-4 w-4 mr-1" />
+                  Settings
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="text-slate-300 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Sign Out
+                </Button>
+              </div>
+>>>>>>> 640bda3 (Update v1.7.0)
             </div>
           </div>
         </div>
@@ -89,6 +190,7 @@ export default function Dashboard() {
       <div className="p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-7xl mx-auto">
           <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border border-slate-700 mb-6">
+<<<<<<< HEAD
             {[
               { value: 'workspace', label: 'Security Workspace', icon: Shield },
               { value: 'console', label: 'AI Console', icon: Terminal },
@@ -104,17 +206,59 @@ export default function Dashboard() {
                 <span>{label}</span>
               </TabsTrigger>
             ))}
+=======
+            <TabsTrigger
+              value="workspace"
+              className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              <Shield className="h-4 w-4" />
+              <span>Security Workspace</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="console"
+              className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              <Terminal className="h-4 w-4" />
+              <span>AI Console</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="dashboard"
+              className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              <Activity className="h-4 w-4" />
+              <span>Scan Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="settings"
+              className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </TabsTrigger>
+>>>>>>> 640bda3 (Update v1.7.0)
           </TabsList>
 
           <TabsContent value="workspace" className="space-y-6">
             <SecurityWorkspace />
           </TabsContent>
+<<<<<<< HEAD
           <TabsContent value="console" className="space-y-6">
             <PromptConsole />
           </TabsContent>
           <TabsContent value="dashboard" className="space-y-6">
             <ScanDashboard />
           </TabsContent>
+=======
+
+          <TabsContent value="console" className="space-y-6">
+            <PromptConsole />
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            <ScanDashboard />
+          </TabsContent>
+
+>>>>>>> 640bda3 (Update v1.7.0)
           <TabsContent value="settings" className="space-y-6">
             <SettingsPage />
           </TabsContent>

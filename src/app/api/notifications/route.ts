@@ -42,7 +42,11 @@ export async function GET(request: NextRequest) {
     console.error('Notifications GET error:', error)
     return NextResponse.json({
       error: 'Failed to fetch notifications',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -98,7 +102,11 @@ export async function POST(request: NextRequest) {
     console.error('Notifications POST error:', error)
     return NextResponse.json({
       error: 'Failed to create notification',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -175,7 +183,11 @@ export async function PATCH(request: NextRequest) {
     console.error('Notifications PATCH error:', error)
     return NextResponse.json({
       error: 'Failed to update notification',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -255,7 +267,11 @@ export async function DELETE(request: NextRequest) {
     console.error('Notifications DELETE error:', error)
     return NextResponse.json({
       error: 'Failed to clear notifications',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

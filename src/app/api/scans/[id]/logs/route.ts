@@ -3,7 +3,11 @@ import { getCurrentUser, getScanById, getScanLogs } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
+<<<<<<< HEAD
   { params }: { params: { id: string } }
+=======
+  { params }: { params: Promise<{ id: string }> }
+>>>>>>> 640bda3 (Update v1.7.0)
 ) {
   try {
     const user = await getCurrentUser()
@@ -11,7 +15,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+<<<<<<< HEAD
     const scanId = params.id
+=======
+    const { id: scanId } = await params
+>>>>>>> 640bda3 (Update v1.7.0)
     const { searchParams } = new URL(request.url)
     const level = searchParams.get('level') // Filter by log level
     const limit = Number.parseInt(searchParams.get('limit') || '100')
@@ -62,14 +70,22 @@ export async function GET(
     console.error('Scan logs API error:', error)
     return NextResponse.json({
       error: 'Failed to retrieve scan logs',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
 
 export async function DELETE(
   request: NextRequest,
+<<<<<<< HEAD
   { params }: { params: { id: string } }
+=======
+  { params }: { params: Promise<{ id: string }> }
+>>>>>>> 640bda3 (Update v1.7.0)
 ) {
   try {
     const user = await getCurrentUser()
@@ -77,7 +93,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+<<<<<<< HEAD
     const scanId = params.id
+=======
+    const { id: scanId } = await params
+>>>>>>> 640bda3 (Update v1.7.0)
 
     // Get scan and verify ownership
     const scan = await getScanById(scanId)
@@ -112,7 +132,11 @@ export async function DELETE(
     console.error('Delete scan logs API error:', error)
     return NextResponse.json({
       error: 'Failed to delete scan logs',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

@@ -4,6 +4,10 @@ import { routeToolCommand, validateCommand, SECURITY_TOOLS, type Command } from 
 import { dockerManager } from '@/lib/dockerManager'
 import { insertScan, updateScanStatus, insertScanLog } from '@/lib/supabase'
 import { WebSocketBroadcaster } from '@/lib/websocket'
+<<<<<<< HEAD
+=======
+import { getErrorMessage } from '@/lib/auth-helpers'
+>>>>>>> 640bda3 (Update v1.7.0)
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +33,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check user permissions for high-risk tools
+<<<<<<< HEAD
     if (toolInfo.risk_level === 'critical' && user.plan !== 'enterprise') {
+=======
+    if (toolInfo.risk_level === 'critical' && (user as any)?.plan !== 'enterprise') {
+>>>>>>> 640bda3 (Update v1.7.0)
       return NextResponse.json({
         error: 'Critical risk tools require enterprise plan'
       }, { status: 403 })
@@ -74,7 +82,11 @@ export async function POST(request: NextRequest) {
     console.error('Execute API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: getErrorMessage(error)
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -195,9 +207,14 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
 
       // Broadcast error
       broadcaster.broadcastScanError(scanId, userId, {
+<<<<<<< HEAD
         scanId,
         error: result.error || 'Command execution failed',
         duration: result.duration
+=======
+        message: result.error || 'Command execution failed',
+        details: { duration: result.duration }
+>>>>>>> 640bda3 (Update v1.7.0)
       })
 
       // Broadcast container stop
@@ -213,7 +230,11 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
   } catch (error) {
     console.error(`Direct execution failed for scan ${scanId}:`, error)
     await updateScanStatus(scanId, 'failed', {
+<<<<<<< HEAD
       execution_error: error.message,
+=======
+      execution_error: getErrorMessage(error),
+>>>>>>> 640bda3 (Update v1.7.0)
       direct_execution: true
     })
 
@@ -222,7 +243,11 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
       timestamp: new Date().toISOString(),
       level: 'error',
       message: 'Execution system error',
+<<<<<<< HEAD
       raw_output: error.toString()
+=======
+      raw_output: getErrorMessage(error)
+>>>>>>> 640bda3 (Update v1.7.0)
     })
   }
 }

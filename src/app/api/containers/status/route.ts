@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
     console.error('Container status API error:', error)
     return NextResponse.json({
       error: 'Failed to get container status',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

@@ -155,7 +155,11 @@ Target: "${target}"`
     console.error('Scan API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -188,7 +192,11 @@ async function executeCommandAsync(scanId: string, command: string | { toString(
   } catch (error) {
     console.error(`Command execution failed for scan ${scanId}:`, error)
     await updateScanStatus(scanId, 'failed', {
+<<<<<<< HEAD
       execution_error: error.message
+=======
+      execution_error: error instanceof Error ? error.message : String(error)
+>>>>>>> 640bda3 (Update v1.7.0)
     })
   }
 }
