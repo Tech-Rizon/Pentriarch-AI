@@ -158,7 +158,11 @@ export class MCPRouter {
       const result = await this.callModel(model, prompt, systemPrompt)
       return result
     } catch (error) {
-      console.error(`Model ${model.id} failed:`, error.message)
+      if (error instanceof Error) {
+        console.error(`Model ${model.id} failed:`, error.message)
+      } else {
+        console.error(`Model ${model.id} failed:`, String(error))
+      }
 
       // Try fallback models
       for (const fallbackId of this.fallbackOrder) {
