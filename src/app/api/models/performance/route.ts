@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
+<<<<<<< HEAD
 import { createClient } from '@/lib/supabase'
+=======
+import { createClient } from '@supabase/supabase-js'
+>>>>>>> 640bda3 (Update v1.7.0)
 
 interface ModelPerformance {
   model_id: string

@@ -10,12 +10,32 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+<<<<<<< HEAD
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
       "react/no-unescaped-entities": "off",
       "@next/next/no-img-element": "off",
+=======
+  ...compat.extends("next/core-web-vitals"),
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "prefer-const": "off",
+      "@next/next/no-img-element": "off",
+      "react/no-unescaped-entities": "off",
+      "import/no-anonymous-default-export": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/no-inferrable-types": "off",
+      "@typescript-eslint/prefer-as-const": "off",
+      "react/jsx-key": "off",
+      "react/display-name": "off",
+>>>>>>> 640bda3 (Update v1.7.0)
       "jsx-a11y/alt-text": "off",
     },
   },

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
@@ -45,4 +46,43 @@ export default async function RootLayout({
       </body>
     </html>
   )
+=======
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+import ClientBody from "./ClientBody";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Pentriarch AI - Advanced Penetration Testing Platform",
+  description: "AI-powered penetration testing platform with advanced security analysis and automated vulnerability detection",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} dark`}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 antialiased">
+        <ClientBody>{children}</ClientBody>
+      </body>
+    </html>
+  );
+>>>>>>> 640bda3 (Update v1.7.0)
 }

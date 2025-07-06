@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
     console.error('Kill container API error:', error)
     return NextResponse.json({
       error: 'Failed to kill container',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

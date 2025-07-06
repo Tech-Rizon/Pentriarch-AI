@@ -1,10 +1,18 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, getScanById, getReportByScanId, insertReport } from '@/lib/supabase'
+<<<<<<< HEAD
+=======
+import { getErrorMessage } from '@/lib/auth-helpers'
+>>>>>>> 640bda3 (Update v1.7.0)
 import { mcpRouter } from '@/lib/mcpRouter'
 
 export async function GET(
   request: NextRequest,
+<<<<<<< HEAD
   { params }: { params: { id: string } }
+=======
+  { params }: { params: Promise<{ id: string }> }
+>>>>>>> 640bda3 (Update v1.7.0)
 ) {
   try {
     const user = await getCurrentUser()
@@ -12,7 +20,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+<<<<<<< HEAD
     const scanId = params.id
+=======
+    const { id: scanId } = await params
+>>>>>>> 640bda3 (Update v1.7.0)
 
     // Get scan and verify ownership
     const scan = await getScanById(scanId)
@@ -38,14 +50,22 @@ export async function GET(
     console.error('Report API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
 
 export async function POST(
   request: NextRequest,
+<<<<<<< HEAD
   { params }: { params: { id: string } }
+=======
+  { params }: { params: Promise<{ id: string }> }
+>>>>>>> 640bda3 (Update v1.7.0)
 ) {
   try {
     const user = await getCurrentUser()
@@ -53,7 +73,11 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+<<<<<<< HEAD
     const scanId = params.id
+=======
+    const { id: scanId } = await params
+>>>>>>> 640bda3 (Update v1.7.0)
     const { regenerate = false } = await request.json()
 
     // Get scan and verify ownership
@@ -85,7 +109,11 @@ export async function POST(
     console.error('Report generation error:', error)
     return NextResponse.json({
       error: 'Failed to generate report',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -118,7 +146,11 @@ SCAN DETAILS:
 - Tool: ${scan.tool_used}
 - Target: ${scan.target}
 - Command: ${scan.command_executed}
+<<<<<<< HEAD
 - Duration: ${scan.end_time ? new Date(scan.end_time).getTime() - new Date(scan.start_time).getTime() : 'Unknown'}ms
+=======
+- Duration: ${(scan as any).end_time ? new Date((scan as any).end_time).getTime() - new Date((scan as any).start_time).getTime() : 'Unknown'}ms
+>>>>>>> 640bda3 (Update v1.7.0)
 
 SCAN OUTPUT:
 ${output}
@@ -189,7 +221,11 @@ Generate a comprehensive JSON report with this structure:
     // Insert report into database
     const report = await insertReport({
       scan_id: scan.id,
+<<<<<<< HEAD
       findings: parsedReport.findings || [],
+=======
+      findings: (parsedReport.findings as any[]) || [],
+>>>>>>> 640bda3 (Update v1.7.0)
       summary: parsedReport.summary || 'Scan completed',
       risk_score: parsedReport.risk_score || 5,
       ai_analysis: reportResponse.response,
@@ -207,7 +243,11 @@ Generate a comprehensive JSON report with this structure:
       findings: [],
       summary: `${scan.tool_used} scan completed on ${scan.target}`,
       risk_score: 5,
+<<<<<<< HEAD
       ai_analysis: `Analysis failed: ${error.message}`,
+=======
+      ai_analysis: `Analysis failed: ${getErrorMessage(error)}`,
+>>>>>>> 640bda3 (Update v1.7.0)
       recommendations: ['Manual review of scan logs recommended']
     })
 

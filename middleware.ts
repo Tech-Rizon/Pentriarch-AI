@@ -66,9 +66,17 @@ export async function middleware(request: NextRequest) {
   }
 }
 
+<<<<<<< HEAD
 // ✅ Apply to all except static/image assets
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|gif|webp)$).*)',
+=======
+// ✅ Apply to all except static/image assets - simplified pattern for Next.js 15 compatibility
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/(api)/:path*'
+>>>>>>> 640bda3 (Update v1.7.0)
   ],
 }

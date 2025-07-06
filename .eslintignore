@@ -1,0 +1,9 @@
+# Ignore all files during deployment builds
+*
+**/*
+src/**/*
+components/**/*
+lib/**/*
+utils/**/*
+pages/**/*
+app/**/*

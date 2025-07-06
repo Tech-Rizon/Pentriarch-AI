@@ -72,7 +72,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check user plan permissions
+<<<<<<< HEAD
     const userPlan = user.raw_user_meta_data?.plan || 'free'
+=======
+    const userPlan = (user as any)?.raw_user_meta_data?.plan || 'free'
+>>>>>>> 640bda3 (Update v1.7.0)
 
     if (userPlan === 'free' && !['gpt-4-mini', 'claude-3-haiku'].includes(modelId)) {
       return NextResponse.json({
@@ -123,7 +127,11 @@ export async function POST(request: NextRequest) {
     console.error('Set model API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -142,7 +150,11 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
+<<<<<<< HEAD
     const userPlan = user.raw_user_meta_data?.plan || 'free'
+=======
+    const userPlan = (user as any)?.raw_user_meta_data?.plan || 'free'
+>>>>>>> 640bda3 (Update v1.7.0)
     const preferredModelId = settings?.preferred_ai_model || 'gpt-4-mini'
 
     // Default preferences if none exist
@@ -190,7 +202,11 @@ export async function GET(request: NextRequest) {
     console.error('Get model API error:', error)
     return NextResponse.json({
       error: 'Internal server error',
+<<<<<<< HEAD
       details: error.message
+=======
+      details: error instanceof Error ? error.message : "Unknown error"
+>>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

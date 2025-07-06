@@ -8,6 +8,19 @@ function getSupabaseClient() {
   )
 }
 
+<<<<<<< HEAD
+=======
+// Define notification type
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  priority?: string;
+  created_at: string;
+}
+
+>>>>>>> 640bda3 (Update v1.7.0)
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url)
@@ -61,7 +74,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Get recent notifications for the user
+<<<<<<< HEAD
     let notifications = []
+=======
+    let notifications: Notification[] = []
+>>>>>>> 640bda3 (Update v1.7.0)
     if (userId) {
       const { data: notificationData } = await supabase
         .from('notifications')
@@ -105,6 +122,7 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+<<<<<<< HEAD
 
 // POST endpoint for updating scan status (for internal use)
 export async function POST(request: NextRequest) {
@@ -165,3 +183,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+=======
+>>>>>>> 640bda3 (Update v1.7.0)
