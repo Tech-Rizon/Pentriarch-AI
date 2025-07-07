@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
+import type { DateRange } from 'react-day-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Table,
@@ -532,7 +533,7 @@ export default function AuditTrail() {
                           mode="range"
                           defaultMonth={dateRange.from}
                           selected={{ from: dateRange.from, to: dateRange.to }}
-                          onSelect={(range) => setDateRange(range || {})}
+                          onSelect={(range: DateRange | undefined) => setDateRange(range || {})}
                           numberOfMonths={2}
                           className="bg-slate-800 text-white"
                         />
