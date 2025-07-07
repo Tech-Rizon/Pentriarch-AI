@@ -17,7 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Pentriarch AI - Advanced Penetration Testing Platform",
-  description: "AI-powered penetration testing platform with advanced security analysis and automated vulnerability detection",
+  description:
+    "AI-powered penetration testing platform with advanced security analysis and automated vulnerability detection",
 };
 
 export default function RootLayout({
@@ -26,9 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} dark`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetbrainsMono.variable} dark`}
+    >
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 antialiased">
         <ClientBody>{children}</ClientBody>
