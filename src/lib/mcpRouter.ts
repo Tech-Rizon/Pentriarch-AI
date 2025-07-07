@@ -150,7 +150,7 @@ export class MCPRouter {
   async executePrompt(
     prompt: string,
     modelId?: string,
-    systemPrompt: string | undefined
+    systemPrompt?: string
   ): Promise<{ response: string; model: string; tokens: number }> {
     const model = AI_MODELS.find(m => m.id === modelId) || AI_MODELS[0]
 

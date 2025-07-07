@@ -14,6 +14,16 @@
     "jsx": "preserve",
     "jsxImportSource": "bippy/dist",
     "incremental": true,
+    "forceConsistentCasingInFileNames": true,
+    // ✅ Use "paths" to map module aliases
+    // ✅ Use "plugins" to enable Next.js specific features
+    // ✅ Use "types" to prevent auto-loading problematic global types
+    // ✅ Use "skipLibCheck" to skip type checking of declaration files
+    // ✅ Use "noEmit" to prevent emitting output files
+    // ✅ Use "allowJs" to allow JavaScript files in the project
+    // ✅ Use "resolveJsonModule" to allow importing JSON files
+    // ✅ Use "isolatedModules" to ensure each file can be transpiled independently
+    // ✅ Use "incremental" for faster builds
     "types": [], // ✅ Prevent auto-loading problematic global types
     "plugins": [
       {
