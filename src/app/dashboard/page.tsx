@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -12,8 +12,18 @@ import SecurityWorkspace from '@/components/SecurityWorkspace'
 import SettingsPage from '@/components/SettingsPage'
 import { getCurrentUser, signOut } from '@/lib/supabase'
 
+// ✅ Structurally typed interface
+export interface AppUser extends Record<string, unknown> {
+  id: string
+  email: string
+  user_metadata?: {
+    full_name?: string
+    plan?: string
+  }
+}
+
 export default function Dashboard() {
-  const [user, setUser] = useState<{ id: string; email: string; user_metadata?: { full_name?: string; plan?: string } } | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('workspace')
   const router = useRouter()
@@ -25,11 +35,11 @@ export default function Dashboard() {
   const loadUser = async () => {
     try {
       const currentUser = await getCurrentUser()
-      if (!currentUser) {
+      if (!currentUser || !currentUser.email) {
         router.push('/auth')
         return
       }
-      setUser(currentUser)
+      setUser(currentUser as AppUser)
     } catch (error) {
       console.error('Failed to load user:', error)
       router.push('/auth')
@@ -38,7 +48,8 @@ export default function Dashboard() {
     }
   }
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
     try {
       await signOut()
       router.push('/')
@@ -63,11 +74,7 @@ export default function Dashboard() {
   }
 
   if (!user) {
-    return null // Will redirect to auth
-  }
-
-  function handleSignOut(event: MouseEvent<HTMLButtonElement, MouseEvent>): void {
-    throw new Error('Function not implemented.')
+    return null // Redirecting
   }
 
   return (
@@ -90,7 +97,9 @@ export default function Dashboard() {
               <div className="flex items-center space-x-2">
                 <div className="text-right">
                   <p className="text-sm font-medium text-white">{user.email}</p>
-                  <p className="text-xs text-slate-400 capitalize">{user.raw_user_meta_data?.plan || 'Free'} Plan</p>
+                  <p className="text-xs text-slate-400 capitalize">
+                    {user.user_metadata?.plan || 'Free'} Plan
+                  </p>
                 </div>
                 <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
