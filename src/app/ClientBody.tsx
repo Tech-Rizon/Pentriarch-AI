@@ -7,15 +7,6 @@ export default function ClientBody({
 }: {
   children: React.ReactNode;
 }) {
-<<<<<<< HEAD
-  // Remove any extension-added classes during hydration
-  useEffect(() => {
-    // This runs only on the client after hydration
-    document.body.className = "antialiased";
-  }, []);
-
-  return <div className="antialiased">{children}</div>;
-=======
   // Ensure dark mode and proper styling
   useEffect(() => {
     // Force dark mode for consistency
@@ -30,5 +21,4 @@ export default function ClientBody({
       {children}
     </>
   );
->>>>>>> 640bda3 (Update v1.7.0)
 }

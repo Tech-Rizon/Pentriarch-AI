@@ -150,11 +150,7 @@ export class MCPRouter {
   async executePrompt(
     prompt: string,
     modelId?: string,
-<<<<<<< HEAD
-    systemPrompt?: string
-=======
     systemPrompt: string | undefined
->>>>>>> 640bda3 (Update v1.7.0)
   ): Promise<{ response: string; model: string; tokens: number }> {
     const model = AI_MODELS.find(m => m.id === modelId) || AI_MODELS[0]
 
@@ -162,11 +158,7 @@ export class MCPRouter {
       const result = await this.callModel(model, prompt, systemPrompt)
       return result
     } catch (error) {
-<<<<<<< HEAD
-      console.error(`Model ${model.id} failed:`, error.message)
-=======
       console.error(`Model ${model.id} failed:`, (error instanceof Error ? error.message : String(error)))
->>>>>>> 640bda3 (Update v1.7.0)
 
       // Try fallback models
       for (const fallbackId of this.fallbackOrder) {
@@ -180,14 +172,7 @@ export class MCPRouter {
           const result = await this.callModel(fallbackModel, prompt, systemPrompt)
           return { ...result, model: `${result.model} (fallback)` }
         } catch (fallbackError) {
-<<<<<<< HEAD
-          console.error(
-            `Fallback ${fallbackModel.id} failed:`,
-            fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-          )
-=======
           console.error(`Fallback ${fallbackModel.id} failed:`, (fallbackError instanceof Error ? fallbackError.message : String(fallbackError)))
->>>>>>> 640bda3 (Update v1.7.0)
         }
       }
 
@@ -211,11 +196,7 @@ export class MCPRouter {
   private async callModel(
     model: AIModel,
     prompt: string,
-<<<<<<< HEAD
-    systemPrompt?: string
-=======
     systemPrompt: string | undefined
->>>>>>> 640bda3 (Update v1.7.0)
   ): Promise<{ response: string; model: string; tokens: number }> {
     const apiKey = this.apiKeys[model.provider]
     if (!apiKey) {
@@ -224,19 +205,11 @@ export class MCPRouter {
 
     switch (model.provider) {
       case 'openai':
-<<<<<<< HEAD
         return this.callOpenAI(model, prompt, apiKey, systemPrompt)
       case 'anthropic':
         return this.callAnthropic(model, prompt, apiKey, systemPrompt)
       case 'deepseek':
         return this.callDeepSeek(model, prompt, apiKey, systemPrompt)
-=======
-        return this.callOpenAI(model, prompt, systemPrompt, apiKey)
-      case 'anthropic':
-        return this.callAnthropic(model, prompt, systemPrompt, apiKey)
-      case 'deepseek':
-        return this.callDeepSeek(model, prompt, systemPrompt, apiKey)
->>>>>>> 640bda3 (Update v1.7.0)
       default:
         throw new Error(`Unsupported provider: ${model.provider}`)
     }
@@ -246,11 +219,7 @@ export class MCPRouter {
     model: AIModel,
     prompt: string,
     apiKey: string,
-<<<<<<< HEAD
-    systemPrompt?: string
-=======
     systemPrompt: string | undefined
->>>>>>> 640bda3 (Update v1.7.0)
   ): Promise<{ response: string; model: string; tokens: number }> {
     const OpenAI = (await import('openai')).default
     const openai = new OpenAI({ apiKey })
@@ -279,11 +248,7 @@ export class MCPRouter {
     model: AIModel,
     prompt: string,
     apiKey: string,
-<<<<<<< HEAD
-    systemPrompt?: string
-=======
     systemPrompt: string | undefined
->>>>>>> 640bda3 (Update v1.7.0)
   ): Promise<{ response: string; model: string; tokens: number }> {
     const Anthropic = (await import('@anthropic-ai/sdk')).default
     const anthropic = new Anthropic({ apiKey })
@@ -306,11 +271,7 @@ export class MCPRouter {
     model: AIModel,
     prompt: string,
     apiKey: string,
-<<<<<<< HEAD
-    systemPrompt?: string
-=======
     systemPrompt: string | undefined
->>>>>>> 640bda3 (Update v1.7.0)
   ): Promise<{ response: string; model: string; tokens: number }> {
     // DeepSeek uses OpenAI-compatible API
     const OpenAI = (await import('openai')).default

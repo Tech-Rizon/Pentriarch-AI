@@ -20,11 +20,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')
     const riskLevel = searchParams.get('risk_level')
     const searchQuery = searchParams.get('search')
-<<<<<<< HEAD
-    const userPlan = user.raw_user_meta_data?.plan || 'free'
-=======
     const userPlan = (user as any)?.raw_user_meta_data?.plan || 'free'
->>>>>>> 640bda3 (Update v1.7.0)
 
     let tools: SecurityTool[] = getAllTools()
 
@@ -96,11 +92,7 @@ export async function GET(request: NextRequest) {
     console.error('Tools API error:', error)
     return NextResponse.json({
       error: 'Failed to retrieve tools',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -113,11 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only enterprise users can add custom tools
-<<<<<<< HEAD
-    const userPlan = user.raw_user_meta_data?.plan || 'free'
-=======
     const userPlan = (user as any)?.raw_user_meta_data?.plan || 'free'
->>>>>>> 640bda3 (Update v1.7.0)
     if (userPlan !== 'enterprise') {
       return NextResponse.json({
         error: 'Custom tool configuration requires Enterprise plan'
@@ -201,11 +189,7 @@ export async function POST(request: NextRequest) {
     console.error('Tools POST error:', error)
     return NextResponse.json({
       error: 'Failed to add custom tool',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -239,22 +223,14 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({
           tool,
           usage_stats: stats,
-<<<<<<< HEAD
-          user_access: getUserAccessLevel(tool, user.raw_user_meta_data?.plan || 'free'),
-=======
           user_access: getUserAccessLevel(tool, (user as any)?.raw_user_meta_data?.plan || 'free'),
->>>>>>> 640bda3 (Update v1.7.0)
           sample_commands: generateSampleCommands(tool)
         })
       }
 
       case 'update_config': {
         // Update tool configuration for user (enterprise only)
-<<<<<<< HEAD
-        const userPlan = user.raw_user_meta_data?.plan || 'free'
-=======
         const userPlan = (user as any)?.raw_user_meta_data?.plan || 'free'
->>>>>>> 640bda3 (Update v1.7.0)
         if (userPlan !== 'enterprise') {
           return NextResponse.json({
             error: 'Tool configuration requires Enterprise plan'
@@ -294,11 +270,7 @@ export async function PATCH(request: NextRequest) {
     console.error('Tools PATCH error:', error)
     return NextResponse.json({
       error: 'Failed to update tool',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -397,11 +369,7 @@ function getUserAccessLevel(tool: SecurityTool, userPlan: string) {
 }
 
 function generateSampleCommands(tool: SecurityTool) {
-<<<<<<< HEAD
-  const samples = {
-=======
   const samples: Record<string, string[]> = {
->>>>>>> 640bda3 (Update v1.7.0)
     nmap: [
       'nmap -sV example.com',
       'nmap -sS -O 192.168.1.1',
@@ -419,9 +387,5 @@ function generateSampleCommands(tool: SecurityTool) {
     ]
   }
 
-<<<<<<< HEAD
-  return samples[tool.id] || [`${tool.id} [target]`]
-=======
   return samples[tool.id as keyof typeof samples] || [`${tool.id} [target]`]
->>>>>>> 640bda3 (Update v1.7.0)
 }

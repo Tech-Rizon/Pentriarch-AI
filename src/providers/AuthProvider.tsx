@@ -1,11 +1,7 @@
 // src/providers/AuthProvider.tsx
 "use client"
 
-<<<<<<< HEAD
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-=======
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
->>>>>>> 640bda3 (Update v1.7.0)
 import { createClient } from "@/utils/supabase/client"
 import type { Session, User } from "@supabase/supabase-js"
 

@@ -39,15 +39,11 @@ export interface WebSocketMessage {
   type: 'scan_progress' | 'container_status' | 'notification' | 'scan_complete' | 'scan_error'
   scanId?: string
   userId?: string
-<<<<<<< HEAD
-  data: unknown // Accept any object type
-=======
   data: Record<string, unknown>
->>>>>>> 640bda3 (Update v1.7.0)
   timestamp: string
 }
 
-export interface ScanProgress {
+export interface ScanProgress extends Record<string, unknown> {
   scanId: string
   status: 'starting' | 'running' | 'completed' | 'failed' | 'cancelled'
   progress: number
@@ -56,7 +52,7 @@ export interface ScanProgress {
   estimatedTimeRemaining?: number
 }
 
-export interface ContainerStatus {
+export interface ContainerStatus extends Record<string, unknown> {
   scanId?: string
   containerId?: string
   status: 'creating' | 'running' | 'stopped' | 'error'
@@ -65,13 +61,14 @@ export interface ContainerStatus {
   cpuUsage?: string
 }
 
-export interface NotificationData {
+export interface NotificationData extends Record<string, unknown> {
   id: string
   type: 'info' | 'success' | 'warning' | 'error' | 'security'
   title: string
   message: string
   priority: 'low' | 'medium' | 'high' | 'critical'
 }
+
 
 class WebSocketManager extends EventEmitter {
   private connections: Map<string, WebSocket> = new Map()
