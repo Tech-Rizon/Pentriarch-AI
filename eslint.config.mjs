@@ -10,14 +10,7 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-<<<<<<< HEAD
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  {
-    rules: {
-      "@typescript-eslint/no-unused-vars": "off",
-      "react/no-unescaped-entities": "off",
-      "@next/next/no-img-element": "off",
-=======
+  // Base ESLint configuration
   ...compat.extends("next/core-web-vitals"),
   {
     rules: {
@@ -35,7 +28,6 @@ const eslintConfig = [
       "@typescript-eslint/prefer-as-const": "off",
       "react/jsx-key": "off",
       "react/display-name": "off",
->>>>>>> 640bda3 (Update v1.7.0)
       "jsx-a11y/alt-text": "off",
     },
   },

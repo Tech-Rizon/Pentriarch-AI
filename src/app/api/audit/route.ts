@@ -125,11 +125,7 @@ export async function GET(request: NextRequest) {
       let completedScans = 0
       let criticalEvents = 0
 
-<<<<<<< HEAD
-      for (const scan of auditData as AuditScanData[]) {
-=======
       for (const scan of auditData as any[]) {
->>>>>>> 640bda3 (Update v1.7.0)
         // Status breakdown
         statusCounts[scan.status] = (statusCounts[scan.status] || 0) + 1
 
@@ -187,11 +183,7 @@ export async function GET(request: NextRequest) {
     console.error('Audit API error:', error)
     return NextResponse.json({
       error: 'Failed to retrieve audit trail',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -251,11 +243,7 @@ export async function POST(request: NextRequest) {
     console.error('Audit logging error:', error)
     return NextResponse.json({
       error: 'Failed to log audit event',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
@@ -269,11 +257,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if user has admin privileges
-<<<<<<< HEAD
-    const userPlan = user.raw_user_meta_data?.plan || 'free'
-=======
     const userPlan = (user as any)?.raw_user_meta_data?.plan || 'free'
->>>>>>> 640bda3 (Update v1.7.0)
     if (userPlan !== 'enterprise') {
       return NextResponse.json({
         error: 'Audit export requires Enterprise plan'
@@ -301,11 +285,7 @@ export async function PUT(request: NextRequest) {
       exported_at: new Date().toISOString(),
       exported_by: user.email,
       user_id: user.id,
-<<<<<<< HEAD
-      organization: user.raw_user_meta_data?.organization || 'Individual',
-=======
       organization: (user as any)?.raw_user_meta_data?.organization || 'Individual',
->>>>>>> 640bda3 (Update v1.7.0)
       audit_period: {
         start: auditData?.[auditData.length - 1]?.created_at || null,
         end: auditData?.[0]?.created_at || null
@@ -336,11 +316,7 @@ export async function PUT(request: NextRequest) {
       let csv = 'Timestamp,Action,User,Target,Tool,Status,Risk_Level,Duration,Details\n'
 
       if (auditData) {
-<<<<<<< HEAD
-        for (const scan of auditData as AuditScanData[]) {
-=======
         for (const scan of auditData as any[]) {
->>>>>>> 640bda3 (Update v1.7.0)
           const duration = scan.end_time && scan.start_time
             ? Math.round((new Date(scan.end_time).getTime() - new Date(scan.start_time).getTime()) / 1000)
             : 'N/A'
@@ -365,11 +341,7 @@ export async function PUT(request: NextRequest) {
     console.error('Audit export error:', error)
     return NextResponse.json({
       error: 'Failed to export audit data',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }

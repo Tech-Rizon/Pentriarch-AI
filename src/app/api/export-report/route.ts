@@ -1,9 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-<<<<<<< HEAD
-import { getCurrentUser, getReportByScanId } from '@/lib/supabase'
-=======
 import { getCurrentUser, getReportByScanId, getScanById } from '@/lib/supabase'
->>>>>>> 640bda3 (Update v1.7.0)
 
 interface ReportFinding {
   title: string
@@ -152,11 +148,7 @@ export async function POST(request: NextRequest) {
     console.error('Export report error:', error)
     return NextResponse.json({
       error: 'Failed to export report',
-<<<<<<< HEAD
-      details: error.message
-=======
       details: error instanceof Error ? error.message : "Unknown error"
->>>>>>> 640bda3 (Update v1.7.0)
     }, { status: 500 })
   }
 }
