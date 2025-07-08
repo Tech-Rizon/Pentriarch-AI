@@ -17,80 +17,118 @@
 
 ## ⚙️ Tech Stack
 
-- ✅ Next.js 15 App Router
-- ✅ Supabase (Auth, Storage, Realtime)
-- ✅ Tailwind CSS + shadcn/ui components
-- ✅ Zod for validation
-- ✅ Dockerode for containerised analysis
-- ✅ Anthropic/OpenAI integrations
+- ✅ **Next.js 15** App Router
+- ✅ **Supabase** (Auth, Storage, Realtime)
+- ✅ **Tailwind CSS** + `shadcn/ui` components
+- ✅ **Zod** for schema validation
+- ✅ **Dockerode** for containerised tool execution
+- ✅ **Anthropic** / **OpenAI** / **DeepSeek** API integration
 
 ---
 
 ## 🚀 Getting Started
 
 ```bash
-pnpm install      # or bun install
-pnpm dev          # local dev server
-pnpm build        # production build
-pnpm start        # run production
-Visit http://localhost:3000 to get started
-bash'''
+pnpm install      # install deps (or use bun)
+pnpm dev          # start dev server
+pnpm build        # build for production
+pnpm start        # start production server
+
+# then visit:
+http://localhost:3000
+```
 
 ---
 
 ## 📂 Project Structure
+
 ```bash
-├── app/                # App router pages (auth, dashboard)
-├── components/         # UI components (shadcn based)
-├── lib/                # Supabase, utils, types
+├── app/                # Next.js App Router (auth, dashboard, pages)
+├── components/         # UI components (shadcn/ui-based)
+├── lib/                # Supabase client, utils, types
 ├── styles/             # Tailwind and global styles
 ├── public/             # Static assets
-├── api/                # Edge/serverless functions
-├── .env                # Environment variables
+├── api/                # Edge functions / route handlers
+├── .env                # Environment config
 ├── netlify.toml        # Deployment config
 └── README.md
-bash'''
+```
 
 ---
 
 ## 🌐 Environment Setup
-Create a .env file or use Netlify dashboard to add the following:
+
+Create a `.env` file in the root or configure environment variables via Netlify’s dashboard:
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 DEEPSEEK_API_KEY=your-deepseek-key
-bash'''
+```
 
 ---
 
-## 📦 Deploy on Netlify
-This project is pre-configured with [netlify.toml] for seamless deployment:
+## 📦 Deploying on Netlify
 
-Push to GitHub
+This project is Netlify-ready!  
+Make sure to:
 
-Connect repo to Netlify
+1. Connect your GitHub repo in Netlify
+2. Set the correct build command:
 
-Set env variables in Site Settings > Environment
+   ```bash
+   pnpm install --no-frozen-lockfile && pnpm build
+   ```
 
-📘 Learn More
-Next.js Docs
+3. Add all required environment variables
+4. Optionally add a `netlify.toml` file with:
 
-shadcn/ui Components
+```toml
+[build]
+  command = "pnpm install --no-frozen-lockfile && pnpm build"
+  publish = ".next"
+  environment = { NODE_VERSION = "18.20.8" }
 
-Supabase
+[functions]
+  node_bundler = "esbuild"
+```
 
-Dockerode
+---
+
+## ✅ Sample Test Case
+
+You can test your scan API route with:
+
+```bash
+curl -X POST http://localhost:3000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{ "target": "http://example.com" }'
+```
+
+---
+
+## 🔒 Security Tiers
+
+| Plan       | Features                                                                 |
+|------------|--------------------------------------------------------------------------|
+| **PentRizon** (Free) | GPT-4 Mini & Claude Haiku, 5 scans/day, basic tools             |
+| **Pentriarch** (Pro) | GPT-4, Claude Sonnet, DeepSeek V2, unlimited scans, priority AI |
+| **Custom** (Enterprise) | Dedicated infra, custom AI training, white-label support       |
 
 ---
 
 ## 👨🏾‍💻 Author
-Built by Collin Ambani Anjeo – Cybersecurity Architect | AI Builder | Founder @ TechRizon
 
-Security isn’t just a feature — it’s the foundation.
+Built by **Collin Ambani Anjeo**  
+_Cybersecurity Architect | AI Builder | Founder @ TechRizon_
+
+> "Security isn’t just a feature — it’s the foundation."
 
 ---
 
 ## 📄 License
-MIT License. © 2025
+
+MIT License  
+© 2025 [TechRizon](https://tech-rizon.com). Built with ❤️ for cybersecurity automation.
