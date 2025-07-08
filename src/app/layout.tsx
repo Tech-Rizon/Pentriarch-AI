@@ -26,11 +26,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const interClass = inter?.variable ?? '';
+  const jetbrainsMonoClass = jetbrainsMono?.variable ?? '';
+
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} dark`}
-    >
+    <html lang="en" className={`${interClass} ${jetbrainsMonoClass} dark`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
