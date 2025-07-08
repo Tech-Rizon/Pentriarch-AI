@@ -35,10 +35,11 @@ pnpm build        # production build
 pnpm start        # run production
 Visit http://localhost:3000 to get started
 
+
+---
+
 📂 Project Structure
-bash
-Copy
-Edit
+```bash
 ├── app/                # App router pages (auth, dashboard)
 ├── components/         # UI components (shadcn based)
 ├── lib/                # Supabase, utils, types
@@ -51,20 +52,17 @@ Edit
 🌐 Environment Setup
 Create a .env file or use Netlify dashboard to add the following:
 
-env
-Copy
-Edit
+
+
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 DEEPSEEK_API_KEY=your-deepseek-key
+
 🧪 Sample API Test Case (/api/scan)
 Use supertest or Postman:
 
-ts
-Copy
-Edit
 import request from 'supertest'
 import handler from '@/app/api/scan/route'
 
@@ -79,7 +77,10 @@ describe('POST /api/scan', () => {
     expect(res.body).toHaveProperty('scanId')
   })
 })
-📦 Deploy on Netlify
+
+---
+
+## 📦 Deploy on Netlify
 This project is pre-configured with [netlify.toml] for seamless deployment:
 
 Push to GitHub
@@ -97,5 +98,14 @@ Supabase
 
 Dockerode
 
-📄 License
-MIT License. © 2025 Collin Ambani Anjeo
+---
+
+## 👨🏾‍💻 Author
+Built by Collin Ambani Anjeo – Cybersecurity Architect | AI Builder | Founder @ TechRizon
+
+Security isn’t just a feature — it’s the foundation.
+
+---
+
+## 📄 License
+MIT License. © 2025
