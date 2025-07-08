@@ -1,5 +1,7 @@
-import AuthPage from '@/components/AuthPage'
+'use client';
+
+import AuthPage from '@/components/AuthPage';
 
 export default function AuthPageRoute() {
-  return <AuthPage />
+  return <AuthPage />;
 }

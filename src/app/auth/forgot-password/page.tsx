@@ -1,5 +1,7 @@
-import PasswordReset from '@/components/auth/PasswordReset'
+'use client';
+
+import PasswordReset from '@/components/auth/PasswordReset';
 
 export default function ForgotPasswordPage() {
-  return <PasswordReset mode="request" />
+  return <PasswordReset mode="request" />;
 }
