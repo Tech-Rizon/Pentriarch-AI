@@ -34,11 +34,11 @@ pnpm dev          # local dev server
 pnpm build        # production build
 pnpm start        # run production
 Visit http://localhost:3000 to get started
-
+bash'''
 
 ---
 
-📂 Project Structure
+## 📂 Project Structure
 ```bash
 ├── app/                # App router pages (auth, dashboard)
 ├── components/         # UI components (shadcn based)
@@ -49,34 +49,19 @@ Visit http://localhost:3000 to get started
 ├── .env                # Environment variables
 ├── netlify.toml        # Deployment config
 └── README.md
-🌐 Environment Setup
+bash'''
+
+---
+
+## 🌐 Environment Setup
 Create a .env file or use Netlify dashboard to add the following:
-
-
-
+```bash
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 DEEPSEEK_API_KEY=your-deepseek-key
-
-🧪 Sample API Test Case (/api/scan)
-Use supertest or Postman:
-
-import request from 'supertest'
-import handler from '@/app/api/scan/route'
-
-describe('POST /api/scan', () => {
-  it('should return 200 with a valid payload', async () => {
-    const res = await request(handler).post('/api/scan').send({
-      url: 'https://example.com',
-      strategy: 'ai',
-    })
-
-    expect(res.statusCode).toBe(200)
-    expect(res.body).toHaveProperty('scanId')
-  })
-})
+bash'''
 
 ---
 
