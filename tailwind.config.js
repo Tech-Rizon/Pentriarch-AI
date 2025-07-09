@@ -1,6 +1,5 @@
-import type { Config } from "tailwindcss";
-
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   darkMode: ["class"],
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
@@ -66,13 +65,6 @@ export default {
           xl: "5rem",
           "2xl": "6rem",
         },
-        screens: {
-          sm: "640px",
-          md: "768px",
-          lg: "1024px",
-          xl: "1280px",
-          "2xl": "1536px",
-        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "sans-serif"],
@@ -81,4 +73,4 @@ export default {
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+};
