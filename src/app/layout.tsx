@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   title: "Pentriarch AI - Advanced Penetration Testing Platform",
   description:
     "AI-powered penetration testing platform with advanced security analysis and automated vulnerability detection",
+  icons: [
+    { rel: "icon", url: "/favicon-64x64.png", sizes: "64x64", type: "image/png" },
+    { rel: "icon", url: "/favicon-128x128.png", sizes: "128x128", type: "image/png" },
+    { rel: "icon", url: "/favicon-256x256.png", sizes: "256x256", type: "image/png" },
+    { rel: "shortcut icon", url: "/favicon-64x64.png", type: "image/png" },
+  ],
 };
 
 // ✅ Move viewport to its own export (Next.js 15+ requirement)
