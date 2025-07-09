@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, Shield, Zap, Brain, Target, Activity, Users, Sparkles } from 'lucide-react'
@@ -34,8 +35,17 @@ export default function HomePage() {
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-emerald-400" />
-            <h1 className="text-2xl font-bold text-white">Pentriarch AI</h1>
+            <div className="flex items-center space-x-2">
+                <Image
+                  src="/logo_64x64.png"
+                  alt="Pentriarch AI Logo"
+                  width={40}
+                  height={40}
+                  className="rounded-md"
+                />
+                <h1 className="text-2xl font-bold text-white">Pentriarch AI</h1>
+              </div>
+
             <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
               Premium
             </Badge>
@@ -347,7 +357,13 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Shield className="h-6 w-6 text-emerald-400" />
+              <Image
+                src="/logo-pentriarch.png"
+                alt="Pentriarch Footer Logo"
+                width={24}
+                height={24}
+                className="rounded-sm"
+              />
               <span className="text-white font-semibold">Pentriarch AI</span>
               <span className="text-slate-400">by TechRizon</span>
             </div>
