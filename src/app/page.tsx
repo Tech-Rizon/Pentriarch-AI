@@ -358,7 +358,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <Image
-                src="/logo-pentriarch.png"
+                src="/logo_64x64.png"
                 alt="Pentriarch Footer Logo"
                 width={24}
                 height={24}
