@@ -96,7 +96,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-5xl font-bold text-white mb-6">
             AI-Powered Penetration Testing
-            <span className="text-emerald-400"> Made Simple</span>
+            <span className="text-emerald-400"> Made For Everyone</span>
           </h2>
           <p className="text-xl text-slate-300 mb-8 leading-relaxed">
             Transform your security testing with advanced AI that interprets natural language prompts
