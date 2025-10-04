@@ -6,6 +6,7 @@ import { insertScan, updateScanStatus, insertScanLog } from '@/lib/supabase'
 import { WebSocketBroadcaster } from '@/lib/websocket'
 import { getErrorMessage } from '@/lib/auth-helpers'
 
+export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser()
