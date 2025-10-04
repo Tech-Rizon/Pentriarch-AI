@@ -1,1 +1,54 @@
-IyBQZW50cmlhcmNoIEFJIFNlY3VyaXR5IFNjYW5uZXIgLSBDb21wcmVoZW5zaXZlIEthbGkgQ29udGFpbmVyCg==
+# Pentriarch AI Kali Scanner Container
+FROM kalilinux/kali-rolling:latest
+
+LABEL maintainer="Pentriarch AI <support@pentriarch.com>" \
+      description="Pentriarch AI Security Scanner Container based on Kali Linux" \
+      version="1.0.0"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8
+
+# ---- Base OS + Security Tools ------------------------------------------------
+# Includes wordlists for gobuster/ffuf, and common net utils
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git bash coreutils tini sudo \
+    python3 python3-pip python3-venv \
+    golang-go \
+    nmap masscan zmap theharvester recon-ng \
+    nikto whatweb gobuster ffuf wafw00f \
+    sqlmap hydra john hashcat \
+    sslscan sslyze testssl.sh \
+    dnsutils iputils-ping net-tools \
+    wordlists \
+  && rm -rf /var/lib/apt/lists/*
+
+# ---- ProjectDiscovery tools (optional but useful) -----------------------------
+# Set a fixed GOPATH so binaries land in a known dir
+ENV GOPATH=/opt/go-tools
+ENV PATH=$PATH:/opt/go-tools/bin
+
+RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
+    go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
+    go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+
+# ---- Non-root user -----------------------------------------------------------
+RUN useradd -m -u 10001 scanner
+USER scanner
+WORKDIR /app
+
+# ---- Entrypoint (Windows-safe) -----------------------------------------------
+# Make sure CRLF is stripped and the file is executable
+COPY --chown=scanner:scanner scripts/entrypoint.sh /usr/local/bin/pentriarch-entrypoint
+USER root
+RUN sed -i 's/\r$//' /usr/local/bin/pentriarch-entrypoint \
+    && chmod +x /usr/local/bin/pentriarch-entrypoint
+USER scanner
+
+# tini as init; run via bash to avoid shebang issues
+ENTRYPOINT ["/usr/bin/tini","--","bash","/usr/local/bin/pentriarch-entrypoint"]
+CMD ["validate"]
+
+# Optional: quick health check (nmap presence = OK)
+HEALTHCHECK --interval=60s --timeout=5s --start-period=30s \
+  CMD nmap --version >/dev/null 2>&1 || exit 1

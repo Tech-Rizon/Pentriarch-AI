@@ -4,6 +4,7 @@ import { mcpRouter, selectOptimalModel } from '@/lib/mcpRouter'
 import { routeToolCommand, parseAIResponse } from '@/lib/toolsRouter'
 import { dockerManager } from '@/lib/dockerManager'
 
+export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     // Get current user

@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  kali_scanner:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.kali
+    image: pentriarch/kali-scanner:latest
+    container_name: pentriarch-kali-scanner
+    # Conservative limits for MVP; tune later
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: "512M"
+    # Do not auto-start; we will run it on demand
+    restart: "no"
