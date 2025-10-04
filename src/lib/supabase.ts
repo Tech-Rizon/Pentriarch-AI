@@ -149,17 +149,49 @@ const createDemoScans = (): Scan[] => [
 ]
 
 // Auth helper functions
-export const getCurrentUser = async () => {
+import { cookies } from 'next/headers'
+import { type NextRequest } from 'next/server'
+
+export const getCurrentUser = async (request?: NextRequest) => {
   if (isDemoMode) {
     return createDemoUser()
   }
 
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    let accessToken = null
+    // Try to get JWT from Authorization header
+    if (request) {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.replace('Bearer ', '')
+      }
+      // Fallback: Try to get from cookies
+      if (!accessToken) {
+        const cookieHeader = request.headers.get('cookie')
+        if (cookieHeader) {
+          const match = cookieHeader.match(/sb-access-token=([^;]+)/)
+          if (match) accessToken = match[1]
+        }
+      }
+    } else {
+      // If no request, try next/headers cookies (for edge/server)
+      const cookieStore = await cookies();
+      accessToken = cookieStore.get('sb-access-token')?.value || null
+    }
+
+    if (!accessToken) {
+      return null
+    }
+
+    // Create a Supabase client with the access token
+    const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } }
+    })
+    const { data: { user } } = await supabaseServer.auth.getUser()
     return user
   } catch (error) {
-    console.warn('Supabase auth error (demo mode available):', error)
-    return createDemoUser()
+    console.warn('Supabase auth error (server-side):', error)
+    return null
   }
 }
 
