@@ -558,16 +558,16 @@ export default function Notifications() {
                                 </label>
                                 <label className="flex items-center space-x-1">
                                   <Checkbox
-                                    checked={config.sms}
-                                    onCheckedChange={(checked) =>
-                                      setSettings({
-                                        ...settings,
-                                        categories: {
-                                          ...settings.categories,
-                                          [category]: { ...config, sms: checked as boolean }
-                                        }
-                                      })
+                                  checked={config.sms}
+                                  onCheckedChange={(checked: boolean) =>
+                                    setSettings({
+                                    ...settings,
+                                    categories: {
+                                      ...settings.categories,
+                                      [category]: { ...config, sms: checked }
                                     }
+                                    })
+                                  }
                                   />
                                   <span>SMS</span>
                                 </label>

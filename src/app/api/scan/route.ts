@@ -13,13 +13,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+
     // Parse request body
     const { prompt, target, preferredModel, userPlan = 'free' } = await request.json()
 
-    if (!prompt || !target) {
-      return NextResponse.json({
-        error: 'Prompt and target are required'
-      }, { status: 400 })
+    // Input validation
+    // Validate target as domain, IP, or URL
+    const isValidTarget = typeof target === 'string' && (
+      /^([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/.test(target) || // domain
+      /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(target) || // IPv4
+      /^(https?:\/\/)?([\w.-]+)\.([a-z\.]{2,6})([\/\w .-]*)*\/?$/.test(target) // URL
+    );
+    if (!isValidTarget) {
+      return NextResponse.json({ error: 'Invalid target format' }, { status: 400 });
+    }
+
+    // Validate prompt length and content
+    if (!prompt || typeof prompt !== 'string' || prompt.length > 500) {
+      return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 });
+    }
+
+    // Validate preferredModel and userPlan
+    const allowedModels = ['gpt-4', 'gpt-4-mini', 'claude-3-sonnet', 'claude-3-haiku', 'deepseek-v2'];
+    if (preferredModel && !allowedModels.includes(preferredModel)) {
+      return NextResponse.json({ error: 'Invalid model selection' }, { status: 400 });
+    }
+    const allowedPlans = ['free', 'pro', 'enterprise'];
+    if (userPlan && !allowedPlans.includes(userPlan)) {
+      return NextResponse.json({ error: 'Invalid user plan' }, { status: 400 });
     }
 
     // Select optimal AI model based on prompt complexity

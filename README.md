@@ -113,8 +113,8 @@ curl -X POST http://localhost:3000/api/scan \
 
 | Plan       | Features                                                                 |
 |------------|--------------------------------------------------------------------------|
-| **PentRizon** (Free) | GPT-4 Mini & Claude Haiku, 5 scans/day, basic tools             |
-| **Pentriarch** (Pro) | GPT-4, Claude Sonnet, DeepSeek V2, unlimited scans, priority AI |
+| **PentRizon** (Free) | GPT-3.5 Mini & Claude Haiku, 5 scans/day, basic tools             |
+| **Pentriarch** (Pro) | GPT-5, Claude Sonnet, DeepSeek V2, unlimited scans, priority AI |
 | **Custom** (Enterprise) | Dedicated infra, custom AI training, white-label support       |
 
 ---
