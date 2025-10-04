@@ -276,6 +276,7 @@
   - Updated Checkbox import to '@/components/ui/checkbox' and confirmed module resolution.
   - Checkbox component created and made accessible.
   - All alias errors for Checkbox resolved.
-- [ ] Audit scan execution logic for input validation
+- [x] Audit scan execution logic for input validation
+  - Added validation for target (domain, IP, URL), prompt length/content, model, and plan selection in scan API route.
 - [ ] Test app with real scan scenarios and review logs
 - [ ] Harden deployment and monitor for security events
