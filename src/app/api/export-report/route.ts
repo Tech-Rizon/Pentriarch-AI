@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       case 'pdf': {
         const pdfBuffer = await generatePDFReport(exportData)
-        return new NextResponse(pdfBuffer, {
+        return new NextResponse(new Uint8Array(pdfBuffer), {
           headers: {
             'Content-Disposition': `attachment; filename="pentriarch-report-${scanId}.pdf"`,
             'Content-Type': 'application/pdf'
