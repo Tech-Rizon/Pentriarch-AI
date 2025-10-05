@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserServer } from '@/lib/supabase'
 import { routeToolCommand, validateCommand, SECURITY_TOOLS, type Command } from '@/lib/toolsRouter'
 import { dockerManager } from '@/lib/dockerManager'
 import { insertScan, updateScanStatus, insertScanLog } from '@/lib/supabase'
@@ -9,7 +9,7 @@ import { getErrorMessage } from '@/lib/auth-helpers'
 export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

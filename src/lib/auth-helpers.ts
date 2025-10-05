@@ -1,5 +1,5 @@
 // Helper functions for user authentication and metadata access
-import { getCurrentUser } from './supabase'
+import { getCurrentUserClient } from './supabase'
 
 export interface ExtendedUser {
   id: string
@@ -15,7 +15,7 @@ export interface ExtendedUser {
 
 export async function getSafeUser(): Promise<ExtendedUser | null> {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserClient()
     return user as ExtendedUser
   } catch (error) {
     console.error('Error getting user:', error)

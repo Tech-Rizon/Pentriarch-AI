@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserServer } from '@/lib/supabase'
 import {
   SECURITY_TOOLS,
   getAllTools,
@@ -11,7 +11,7 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
 // Get specific tool information
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

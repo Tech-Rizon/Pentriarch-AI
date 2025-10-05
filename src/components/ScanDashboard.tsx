@@ -27,7 +27,7 @@ import {
   Server,
   Container
 } from 'lucide-react'
-import { getCurrentUser, getScansForUser, type Scan } from '@/lib/supabase'
+import { getCurrentUserClient, getScansForUser, type Scan } from '@/lib/supabase'
 import ContainerManager from './ContainerManager'
 
 interface DashboardStats {
@@ -69,7 +69,7 @@ export default function ScanDashboard() {
 
   const loadUser = async () => {
     try {
-      const currentUser = await getCurrentUser()
+  const currentUser = await getCurrentUserClient()
       setUser(currentUser)
     } catch (error) {
       console.error('Failed to load user:', error)
@@ -395,7 +395,7 @@ export default function ScanDashboard() {
                                 <Clock className="h-4 w-4" />
                                 <span>{formatDuration(scan.start_time, scan.end_time)}</span>
                               </div>
-                              {scan.metadata?.risk_assessment && (
+                              {typeof scan.metadata?.risk_assessment === 'string' && (
                                 <div className="flex items-center space-x-1">
                                   <AlertTriangle className="h-4 w-4" />
                                   <span>Risk: {scan.metadata.risk_assessment}</span>

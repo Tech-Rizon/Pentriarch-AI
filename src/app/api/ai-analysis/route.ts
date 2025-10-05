@@ -1,6 +1,6 @@
 // Advanced AI Analysis API - Multi-step reasoning and intelligent vulnerability analysis
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getScanById, getScanLogs } from '@/lib/supabase'
+import { getCurrentUserServer, getScanById, getScanLogs } from '@/lib/supabase'
 import { aiAnalysisEngine } from '@/lib/aiAnalysisEngine'
 
 interface AnalysisRequest {
@@ -13,14 +13,14 @@ interface AnalysisRequest {
   analysisType?: 'full' | 'risk_only' | 'remediation_only' | 'predictive_only'
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const body: AnalysisRequest = await req.json()
+    const body: AnalysisRequest = await request.json()
     const { scanId, context, analysisType = 'full' } = body
 
     if (!scanId) {
@@ -185,14 +185,14 @@ export async function POST(req: NextRequest) {
 }
 
 // GET endpoint for retrieving analysis capabilities and model status
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const url = new URL(req.url)
+    const url = new URL(request.url)
     const action = url.searchParams.get('action')
 
     switch (action) {

@@ -44,7 +44,7 @@ import {
   FileText,
   BarChart3
 } from 'lucide-react'
-import { getCurrentUser, createScan } from '@/lib/supabase'
+import { getCurrentUserClient, createScan } from '@/lib/supabase'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { SECURITY_TOOLS } from '@/lib/toolsRouter'
 import ContainerManager from './ContainerManager'
@@ -135,7 +135,7 @@ export default function ScanningFlow() {
 
   const loadUser = async () => {
     try {
-      const currentUser = await getCurrentUser()
+      const currentUser = await getCurrentUserClient()
       setUser(currentUser)
     } catch (error) {
       console.error('Failed to load user:', error)
@@ -198,7 +198,8 @@ export default function ScanningFlow() {
         tool_used: scanConfig.tool,
         prompt: scanConfig.prompt,
         ai_model: scanConfig.aiModel,
-        status: 'queued',
+        status: 'queued' as 'queued',
+        start_time: new Date().toISOString(),
         metadata: {
           priority: scanConfig.priority,
           timeout: scanConfig.timeout
@@ -215,10 +216,28 @@ export default function ScanningFlow() {
         currentStep: 'Initializing scan...'
       }))
 
+      // Get JWT from Supabase client (browser)
+      let accessToken = null
+      if (window && window.localStorage) {
+        // Supabase stores session in localStorage under 'supabase.auth.token'
+        const raw = window.localStorage.getItem('supabase.auth.token')
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw)
+            accessToken = parsed?.currentSession?.access_token || null
+          } catch {}
+        }
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
+
       // Start the scan execution
       const response = await fetch('/api/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           scanId: scan.id,
           command: {
@@ -243,13 +262,14 @@ export default function ScanningFlow() {
       setSelectedTab('monitor')
 
     } catch (error) {
-      console.error('Failed to start scan:', error)
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Failed to start scan:', errorMsg);
       setScanState(prev => ({
         ...prev,
         status: 'failed',
-        currentStep: `Failed to start: ${error.message}`,
+        currentStep: `Failed to start: ${errorMsg}`,
         endTime: new Date()
-      }))
+      }));
     }
   }
 
@@ -561,7 +581,6 @@ export default function ScanningFlow() {
             )}
           </TabsContent>
 
-          {/* Monitor Tab */}
           <TabsContent value="monitor" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Real-time Output */}

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getReportByScanId, getScanById } from '@/lib/supabase'
+import { getCurrentUserServer, getReportByScanId, getScanById } from '@/lib/supabase'
 
 interface ReportFinding {
   title: string
@@ -31,7 +31,7 @@ interface ReportData {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

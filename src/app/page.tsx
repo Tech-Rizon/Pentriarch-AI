@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, Shield, Zap, Brain, Target, Activity, Users, Sparkles } from 'lucide-react'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserClient } from '@/lib/supabase'
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -20,7 +20,7 @@ export default function HomePage() {
 
   const checkUser = async () => {
     try {
-      const user = await getCurrentUser()
+      const user = await getCurrentUserClient()
       setIsLoggedIn(!!user)
     } catch (error) {
       console.error('Failed to check user:', error)

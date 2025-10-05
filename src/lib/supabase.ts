@@ -149,23 +149,23 @@ const createDemoScans = (): Scan[] => [
 ]
 
 // Auth helper functions
-import { cookies } from 'next/headers'
-import { type NextRequest } from 'next/server'
 
-export const getCurrentUser = async (request?: NextRequest) => {
+// Server-side: only import in server components or API routes
+// Usage: import { getCurrentUserServer } from '@/lib/supabase' in /app/api/* or server-only files
+import { type NextRequest } from 'next/server'
+export const getCurrentUserServer = async (request?: NextRequest) => {
+  // Dynamic import to avoid static dependency in client bundle
+  const { cookies } = await import('next/headers')
   if (isDemoMode) {
     return createDemoUser()
   }
-
   try {
     let accessToken = null
-    // Try to get JWT from Authorization header
     if (request) {
       const authHeader = request.headers.get('authorization')
       if (authHeader && authHeader.startsWith('Bearer ')) {
         accessToken = authHeader.replace('Bearer ', '')
       }
-      // Fallback: Try to get from cookies
       if (!accessToken) {
         const cookieHeader = request.headers.get('cookie')
         if (cookieHeader) {
@@ -174,16 +174,12 @@ export const getCurrentUser = async (request?: NextRequest) => {
         }
       }
     } else {
-      // If no request, try next/headers cookies (for edge/server)
-      const cookieStore = await cookies();
-      accessToken = cookieStore.get('sb-access-token')?.value || null
+  const cookieStore = await cookies();
+  accessToken = cookieStore.get('sb-access-token')?.value || null
     }
-
     if (!accessToken) {
       return null
     }
-
-    // Create a Supabase client with the access token
     const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${accessToken}` } }
     })
@@ -191,6 +187,21 @@ export const getCurrentUser = async (request?: NextRequest) => {
     return user
   } catch (error) {
     console.warn('Supabase auth error (server-side):', error)
+    return null
+  }
+}
+
+// Client-side: use in React components and browser code
+export const getCurrentUserClient = async () => {
+  if (isDemoMode) {
+    return createDemoUser()
+  }
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) throw error
+    return user
+  } catch (error) {
+    console.warn('Supabase auth error (client-side):', error)
     return null
   }
 }

@@ -54,7 +54,7 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react'
-import { getCurrentUser, createScan } from '@/lib/supabase'
+import { getCurrentUserClient, createScan } from '@/lib/supabase'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { usePanelLayout } from '@/hooks/usePanelLayout'
 import { SECURITY_TOOLS } from '@/lib/toolsRouter'
@@ -152,7 +152,7 @@ export default function SecurityWorkspace() {
 
   const loadUser = async () => {
     try {
-      const currentUser = await getCurrentUser()
+  const currentUser = await getCurrentUserClient()
       setUser(currentUser)
     } catch (error) {
       console.error('Failed to load user:', error)
@@ -222,7 +222,7 @@ export default function SecurityWorkspace() {
         }
       }
 
-      const scan = await createScan(scanData)
+  const scan = await createScan({ ...scanData, start_time: new Date().toISOString(), status: 'queued' })
 
       setScanState(prev => ({
         ...prev,
@@ -259,7 +259,7 @@ export default function SecurityWorkspace() {
       setScanState(prev => ({
         ...prev,
         status: 'failed',
-        currentStep: `Failed to start: ${error.message}`,
+  currentStep: `Failed to start: ${error instanceof Error ? error.message : String(error)}`,
         endTime: new Date()
       }))
     }
@@ -678,7 +678,7 @@ export default function SecurityWorkspace() {
                               </div>
                               <p className="text-slate-300 text-xs">{notification.message}</p>
                               <p className="text-slate-500 text-xs mt-1">
-                                {new Date(notification.timestamp).toLocaleTimeString()}
+                                {new Date(String(notification.timestamp)).toLocaleTimeString()}
                               </p>
                             </div>
                           ))

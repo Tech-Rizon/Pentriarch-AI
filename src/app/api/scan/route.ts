@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, insertScan, updateScanStatus } from '@/lib/supabase'
+import { getCurrentUserServer, insertScan, updateScanStatus } from '@/lib/supabase'
 import { mcpRouter, selectOptimalModel } from '@/lib/mcpRouter'
 import { routeToolCommand, parseAIResponse } from '@/lib/toolsRouter'
 import { dockerManager } from '@/lib/dockerManager'
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     // Get current user
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

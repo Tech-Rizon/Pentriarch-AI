@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserServer } from '@/lib/supabase'
 import { AI_MODELS } from '@/lib/mcpRouter'
 import { supabase } from '@/lib/supabase'
 
@@ -21,7 +21,7 @@ interface UserPreferences {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

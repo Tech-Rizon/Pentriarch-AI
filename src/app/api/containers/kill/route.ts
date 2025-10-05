@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, updateScanStatus } from '@/lib/supabase'
+import { getCurrentUserServer, updateScanStatus } from '@/lib/supabase'
 import { dockerManager } from '@/lib/dockerManager'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

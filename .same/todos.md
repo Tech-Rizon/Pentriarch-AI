@@ -206,12 +206,7 @@
 ### 2. Module Aliases & Resolution
 
 - [x] Path aliases configured in components.json and tsconfig.json
-- [ ] Fix any unresolved module alias errors (e.g., '@/components/ui/calendar')
-  - Check tsconfig.json and jsconfig.json for correct "paths" configuration matching your aliases in components.json.
-  - Ensure all referenced modules (e.g., '@/components/ui/calendar') exist in the correct directory.
-  - Run `pnpm install` to update dependencies and ensure type declarations are present.
-  - If using TypeScript, verify that `@types` packages are installed for any third-party modules.
-  - Restart your IDE after making changes to config files to refresh module resolution.
+- [x] Fix any unresolved module alias errors (e.g., '@/components/ui/calendar')
 
 ### 3. Database & API Security
 
@@ -224,6 +219,7 @@
 - [x] Docker containers run with least privilege and resource limits
 - [x] User input validated before scan execution
 - [x] All scan activities and errors logged
+- [ ] Test app with real scan scenarios and review logs
 - [ ] Add integration tests for scan execution logic
 
 ### 5. WebSocket & Real-Time Features
@@ -272,11 +268,8 @@
 ---
 **Next Steps:**
 
-- [x] Fix unresolved module alias errors
-  - Updated Checkbox import to '@/components/ui/checkbox' and confirmed module resolution.
-  - Checkbox component created and made accessible.
-  - All alias errors for Checkbox resolved.
-- [x] Audit scan execution logic for input validation
-  - Added validation for target (domain, IP, URL), prompt length/content, model, and plan selection in scan API route.
-- [ ] Test app with real scan scenarios and review logs
-- [ ] Harden deployment and monitor for security events
+[ ] Harden deployment and monitor for security events
+
+[ ] Add integration tests for scan execution logic
+
+[ ] Increase test coverage and add security-focused tests

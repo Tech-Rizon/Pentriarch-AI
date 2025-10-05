@@ -23,7 +23,7 @@ import {
   Container,
   Activity
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserClient } from '@/lib/supabase'
 import { webSocketManager, type WebSocketMessage } from '@/lib/websocket'
 import ContainerManager from './ContainerManager'
 
@@ -73,7 +73,7 @@ export default function PromptConsole() {
 
   useEffect(() => {
     // Load user and initialize WebSocket
-    getCurrentUser().then((userData) => {
+  getCurrentUserClient().then((userData) => {
       setUser(userData)
 
       if (userData?.id) {
@@ -118,7 +118,7 @@ export default function PromptConsole() {
           addMessage('system', `📊 **Scan Progress Update**\n\n**Status:** ${progress.status}\n**Progress:** ${progress.progress}%\n**Current Step:** ${progress.currentStep}`)
 
           if (progress.output) {
-            setRealTimeOutput(prev => [...prev, progress.output])
+            setRealTimeOutput(prev => [...prev, typeof progress.output === 'string' ? progress.output : String(progress.output)])
           }
         }
         break
@@ -500,7 +500,7 @@ ${output}
 
       {/* Containers Tab */}
       <TabsContent value="containers">
-        <ContainerManager scanId={activeScanId} />
+  <ContainerManager scanId={activeScanId ?? undefined} />
       </TabsContent>
     </Tabs>
 

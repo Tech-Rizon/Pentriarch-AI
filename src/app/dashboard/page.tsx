@@ -10,7 +10,7 @@ import PromptConsole from '@/components/PromptConsole'
 import ScanDashboard from '@/components/ScanDashboard'
 import SecurityWorkspace from '@/components/SecurityWorkspace'
 import SettingsPage from '@/components/SettingsPage'
-import { getCurrentUser, signOut } from '@/lib/supabase'
+import { getCurrentUserClient, signOut } from '@/lib/supabase'
 
 // ✅ Structurally typed interface
 export interface AppUser extends Record<string, unknown> {
@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   const loadUser = async () => {
     try {
-      const currentUser = await getCurrentUser()
+      const currentUser = await getCurrentUserClient()
       if (!currentUser || !currentUser.email) {
         router.push('/auth')
         return

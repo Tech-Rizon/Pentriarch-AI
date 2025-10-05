@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserServer } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 
 interface AuditScanData {
@@ -25,7 +25,7 @@ interface AuditScanData {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+  const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -248,10 +248,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Export audit data (for compliance)
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

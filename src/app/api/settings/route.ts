@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserServer } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import { AI_MODELS } from '@/lib/mcpRouter'
 
@@ -20,7 +20,7 @@ interface UserWithMetadata {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser() as UserWithMetadata
+  const user = await getCurrentUserServer(request) as UserWithMetadata
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
         scan_complete: true,
         vulnerabilities: true
       },
-      api_keys: {},
+      api_keys: {
+        openai: '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'
+      },
       branding: {}
     }
 
@@ -96,7 +98,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser() as UserWithMetadata
+  const user = await getCurrentUserServer(request) as UserWithMetadata
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -220,7 +222,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getCurrentUser() as UserWithMetadata
+  const user = await getCurrentUserServer(request) as UserWithMetadata
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
