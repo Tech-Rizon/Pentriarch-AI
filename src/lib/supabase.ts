@@ -150,6 +150,7 @@ const createDemoScans = (): Scan[] => [
 ]
 
 // Auth helper functions
+<<<<<<< HEAD
 
 // Server-side: only import in server components or API routes
 // Usage: import { getCurrentUserServer } from '@/lib/supabase' in /app/api/* or server-only files
@@ -157,16 +158,30 @@ import { type NextRequest } from 'next/server'
 export const getCurrentUserServer = async (request?: NextRequest) => {
   // Dynamic import to avoid static dependency in client bundle
   const { cookies } = await import('next/headers')
+=======
+import { cookies } from 'next/headers'
+import { type NextRequest } from 'next/server'
+
+export const getCurrentUser = async (request?: NextRequest) => {
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
   if (isDemoMode) {
     return createDemoUser()
   }
   try {
     let accessToken = null
+<<<<<<< HEAD
+=======
+    // Try to get JWT from Authorization header
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
     if (request) {
       const authHeader = request.headers.get('authorization')
       if (authHeader && authHeader.startsWith('Bearer ')) {
         accessToken = authHeader.replace('Bearer ', '')
       }
+<<<<<<< HEAD
+=======
+      // Fallback: Try to get from cookies
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
       if (!accessToken) {
         const cookieHeader = request.headers.get('cookie')
         if (cookieHeader) {
@@ -175,12 +190,25 @@ export const getCurrentUserServer = async (request?: NextRequest) => {
         }
       }
     } else {
+<<<<<<< HEAD
   const cookieStore = await cookies();
   accessToken = cookieStore.get('sb-access-token')?.value || null
     }
     if (!accessToken) {
       return null
     }
+=======
+      // If no request, try next/headers cookies (for edge/server)
+      const cookieStore = await cookies();
+      accessToken = cookieStore.get('sb-access-token')?.value || null
+    }
+
+    if (!accessToken) {
+      return null
+    }
+
+    // Create a Supabase client with the access token
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
     const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${accessToken}` } }
     })
@@ -189,6 +217,7 @@ export const getCurrentUserServer = async (request?: NextRequest) => {
   } catch (error) {
     console.warn('Supabase auth error (server-side):', error)
     return null
+<<<<<<< HEAD
   }
 }
 
@@ -196,6 +225,8 @@ export const getCurrentUserServer = async (request?: NextRequest) => {
 export const getCurrentUserClient = async () => {
   if (isDemoMode) {
     return createDemoUser()
+=======
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
   }
   try {
     const { data: { user }, error } = await supabase.auth.getUser()

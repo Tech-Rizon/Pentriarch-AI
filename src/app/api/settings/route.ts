@@ -20,7 +20,11 @@ interface UserWithMetadata {
 
 export async function GET(request: NextRequest) {
   try {
+<<<<<<< HEAD
   const user = await getCurrentUserServer(request) as UserWithMetadata
+=======
+    const user = await getCurrentUser() as UserWithMetadata
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -98,7 +102,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+<<<<<<< HEAD
   const user = await getCurrentUserServer(request) as UserWithMetadata
+=======
+    const user = await getCurrentUser() as UserWithMetadata
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -222,7 +230,11 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+<<<<<<< HEAD
   const user = await getCurrentUserServer(request) as UserWithMetadata
+=======
+    const user = await getCurrentUser() as UserWithMetadata
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

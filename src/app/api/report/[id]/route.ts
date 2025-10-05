@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
+<<<<<<< HEAD
 import { getCurrentUserServer, getScanById, getReportByScanId, insertReport } from '@/lib/supabase'
+=======
+import { getCurrentUser, getScanById, getReportByScanId, insertReport } from '@/lib/supabase'
+>>>>>>> 357e07c2e3ac3ace38f0390fc6339fd7243442d8
 import { getErrorMessage } from '@/lib/auth-helpers'
 import { mcpRouter } from '@/lib/mcpRouter'
 
