@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         vulnerabilities: true
       },
       api_keys: {
-        openai: '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'
+        openai: process.env.OPENAI_API_KEY || ''
       },
       branding: {}
     }
