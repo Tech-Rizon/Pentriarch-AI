@@ -7,14 +7,27 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     // Only allow admins to upgrade users
+    // Debug: log headers and cookies
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    try {
+      const cookieHeader = request.headers.get('cookie');
+      console.log('Cookie header:', cookieHeader);
+    } catch (e) {
+      console.log('Error reading cookie header:', e);
+    }
+    // Get current user
     const adminUser = await getCurrentUserServer(request);
-    // Only check properties that exist on the User type
+    console.log('Fetched adminUser:', adminUser);
+    // Check both role and plan for admin access
     const role = (adminUser && 'role' in adminUser) ? adminUser.role : undefined;
     const plan = (adminUser && 'plan' in adminUser) ? adminUser.plan : undefined;
     const isAdmin = role === 'admin';
     const isEnterprise = plan === 'enterprise';
-    if (!adminUser || (!isAdmin && !isEnterprise)) {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    const isPro = plan === 'pro';
+    // Allow access for admin role, enterprise plan, or pro plan
+    if (!adminUser || (!isAdmin && !isEnterprise && !isPro)) {
+      console.log('Access denied. role:', role, 'plan:', plan);
+      return NextResponse.json({ error: 'Forbidden: Admin/Pro/Enterprise access required' }, { status: 403 });
     }
 
     let body;

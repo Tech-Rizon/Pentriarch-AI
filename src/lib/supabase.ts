@@ -18,6 +18,7 @@ export interface User {
   created_at: string
   updated_at: string
   plan: 'free' | 'pro' | 'enterprise'
+  role?: 'user' | 'admin' | 'enterprise'
   usage_tokens: number
   max_tokens: number
 }

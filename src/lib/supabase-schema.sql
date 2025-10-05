@@ -7,11 +7,15 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     full_name TEXT,
     avatar_url TEXT,
     plan TEXT CHECK (plan IN ('free', 'pro', 'enterprise')) DEFAULT 'free',
+    role TEXT CHECK (role IN ('user', 'admin', 'enterprise')) DEFAULT 'user',
     usage_tokens INTEGER DEFAULT 0,
     max_tokens INTEGER DEFAULT 1000,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Migration: Add role column if missing
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS role TEXT CHECK (role IN ('user', 'admin', 'enterprise')) DEFAULT 'user';
 
 -- Create scans table
 CREATE TABLE IF NOT EXISTS public.scans (
