@@ -180,7 +180,7 @@ export class PerformanceMonitor {
       timestamp: Date.now(),
       event,
       properties,
-      page: window.location.pathname,
+      page: typeof window !== 'undefined' ? window.location.pathname : undefined,
       feature,
       duration
     }

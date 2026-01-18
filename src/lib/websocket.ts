@@ -94,7 +94,23 @@ class WebSocketManager extends EventEmitter {
     }
 
     try {
-      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws`
+      if (typeof WebSocket === 'undefined') {
+        console.warn('WebSocket is unavailable in this environment, using polling fallback')
+        this.isWebSocketSupported = false
+        this.startPolling(userId, onMessage)
+        return null
+      }
+
+      const enableDefaultWs = process.env.NEXT_PUBLIC_WS_ENABLED === 'true'
+      const envWsUrl = process.env.NEXT_PUBLIC_WS_URL
+      if (!envWsUrl && !enableDefaultWs) {
+        console.warn('WebSocket disabled: set NEXT_PUBLIC_WS_URL to enable, using polling fallback')
+        this.isWebSocketSupported = false
+        this.startPolling(userId, onMessage)
+        return null
+      }
+
+      const wsUrl = envWsUrl || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws`
       const ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
@@ -141,7 +157,11 @@ class WebSocketManager extends EventEmitter {
       }
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
+        console.error('WebSocket error:', {
+          error,
+          readyState: ws.readyState,
+          url: ws.url
+        })
         this.emit('error', error)
 
         // If WebSocket fails completely, fall back to polling

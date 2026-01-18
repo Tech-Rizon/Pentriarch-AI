@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, getScanById, getScanLogs } from '@/lib/supabase'
+import { getCurrentUserServer, getScanByIdServer, getScanLogsServer } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
@@ -14,7 +14,7 @@ export async function GET(
     const { id: scanId } = await params
 
     // Get scan details
-    const scan = await getScanById(scanId)
+    const scan = await getScanByIdServer(scanId)
 
     // Verify scan belongs to user
     if (scan.user_id !== user.id) {
@@ -22,7 +22,7 @@ export async function GET(
     }
 
     // Get scan logs
-    const logs = await getScanLogs(scanId)
+    const logs = await getScanLogsServer(scanId)
 
     return NextResponse.json({
       scan,

@@ -2,12 +2,6 @@
 const nextConfig = {
   images: {
     unoptimized: true,
-    domains: [
-      "source.unsplash.com",
-      "images.unsplash.com",
-      "ext.same-assets.com",
-      "ugc.same-assets.com",
-    ],
     remotePatterns: [
       {
         protocol: "https",
@@ -84,11 +78,6 @@ const nextConfig = {
     optimizeCss: true,
   },
 
-  // Skip linting during build to focus on showcasing features
-  eslint: {
-    ignoreDuringBuilds: true,
-    dirs: [],
-  },
 
   // Skip TypeScript errors during build for demo
   typescript: {

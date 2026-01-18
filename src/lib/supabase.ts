@@ -1,13 +1,73 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Demo mode detection
-const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ||
-                   process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://demo.supabase.co'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://demo.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'demo-key'
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+}
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+
+const requireSupabaseConfig = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+  }
+}
+
+const requireSupabaseServiceConfig = () => {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase service configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY.')
+  }
+}
+
+const getSupabaseServerClient = () => {
+  requireSupabaseServiceConfig()
+  return createClient(supabaseUrl || '', supabaseServiceKey || '', {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
+export const ensureUserProfileServer = async (user: { id: string; email?: string | null; user_metadata?: { full_name?: string | null } }) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { error } = await supabaseServer
+      .from('user_profiles')
+      .upsert([{
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email || ''
+      }], { onConflict: 'id' })
+
+    if (error) throw error
+  } catch (error) {
+    console.error('Supabase user_profiles upsert error:', error)
+    throw error
+  }
+}
+
+const ensureUserProfileByIdServer = async (userId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer.auth.admin.getUserById(userId)
+    if (error) throw error
+    if (!data?.user) {
+      throw new Error(`Supabase auth user not found for ${userId}`)
+    }
+    await ensureUserProfileServer({
+      id: data.user.id,
+      email: data.user.email,
+      user_metadata: data.user.user_metadata as { full_name?: string | null } | undefined
+    })
+  } catch (error) {
+    console.error('Supabase user_profiles lookup error:', error)
+    throw error
+  }
+}
 
 // Database Types
 export interface User {
@@ -108,47 +168,6 @@ export interface UserSettings {
   updated_at: string
 }
 
-// Demo data for development
-const createDemoUser = (): { id: string; email: string; name: string; created_at: string; role: string } => ({
-  id: 'demo-user-123',
-  email: 'demo@pentriarch.ai',
-  name: 'Demo User',
-  created_at: new Date().toISOString(),
-  role: 'user'
-})
-
-const createDemoScans = (): Scan[] => [
-  {
-    id: 'scan-1',
-    user_id: 'demo-user-123',
-    target: 'example.com',
-    prompt: 'Scan for common vulnerabilities',
-    status: 'completed',
-    ai_model: 'gpt-4',
-    tool_used: 'nmap',
-    command_executed: 'nmap -sV example.com',
-    start_time: new Date(Date.now() - 300000).toISOString(),
-    end_time: new Date(Date.now() - 240000).toISOString(),
-    created_at: new Date(Date.now() - 300000).toISOString(),
-    updated_at: new Date(Date.now() - 240000).toISOString(),
-    metadata: { risk_assessment: 'low' }
-  },
-  {
-    id: 'scan-2',
-    user_id: 'demo-user-123',
-    target: 'testsite.com',
-    prompt: 'Check for SQL injection vulnerabilities',
-    status: 'running',
-    ai_model: 'claude-3-sonnet',
-    tool_used: 'sqlmap',
-    command_executed: 'sqlmap -u testsite.com --batch',
-    start_time: new Date(Date.now() - 120000).toISOString(),
-    created_at: new Date(Date.now() - 120000).toISOString(),
-    updated_at: new Date(Date.now() - 60000).toISOString(),
-    metadata: { risk_assessment: 'high' }
-  }
-]
-
 // Auth helper functions
 
 // Server-side: only import in server components or API routes
@@ -157,9 +176,7 @@ import { type NextRequest } from 'next/server'
 export const getCurrentUserServer = async (request?: NextRequest) => {
   // Dynamic import to avoid static dependency in client bundle
   const { cookies } = await import('next/headers')
-  if (isDemoMode) {
-    return createDemoUser()
-  }
+  requireSupabaseConfig()
   try {
     let accessToken = null
     if (request) {
@@ -194,9 +211,7 @@ export const getCurrentUserServer = async (request?: NextRequest) => {
 
 // Client-side: use in React components and browser code
 export const getCurrentUserClient = async () => {
-  if (isDemoMode) {
-    return createDemoUser()
-  }
+  requireSupabaseConfig()
   try {
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error) throw error
@@ -207,12 +222,20 @@ export const getCurrentUserClient = async () => {
   }
 }
 
-export const signOut = async () => {
-  if (isDemoMode) {
-    console.log('Demo mode: sign out simulated')
-    return
+export const getAccessTokenClient = async () => {
+  requireSupabaseConfig()
+  try {
+    const { data, error } = await supabase.auth.getSession()
+    if (error) throw error
+    return data.session?.access_token || null
+  } catch (error) {
+    console.warn('Supabase session error (client-side):', error)
+    return null
   }
+}
 
+export const signOut = async () => {
+  requireSupabaseConfig()
   try {
     await supabase.auth.signOut()
   } catch (error) {
@@ -227,17 +250,7 @@ export const createScan = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated
 }
 
 export const insertScan = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated_at'>) => {
-  if (isDemoMode) {
-    const newScan: Scan = {
-      ...scan,
-      id: `demo-scan-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-    console.log('Demo mode: scan created', newScan)
-    return newScan
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('scans')
@@ -248,29 +261,40 @@ export const insertScan = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase insert error, using demo data:', error)
-    return {
-      ...scan,
-      id: `demo-scan-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    console.error('Supabase insert error:', error)
+    throw error
+  }
+}
+
+export const insertScanServer = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated_at'>) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer
+      .from('scans')
+      .insert([scan])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    if (error && typeof error === 'object' && (error as { code?: string }).code === '23503') {
+      await ensureUserProfileByIdServer(scan.user_id)
+      const { data, error: retryError } = await supabaseServer
+        .from('scans')
+        .insert([scan])
+        .select()
+        .single()
+      if (retryError) throw retryError
+      return data
     }
+    console.error('Supabase insert error:', error)
+    throw error
   }
 }
 
 export const updateScanStatus = async (scanId: string, status: Scan['status'], metadata?: Record<string, unknown>) => {
-  if (isDemoMode) {
-    const updatedScan = {
-      id: scanId,
-      status,
-      updated_at: new Date().toISOString(),
-      end_time: (status === 'completed' || status === 'failed') ? new Date().toISOString() : undefined,
-      metadata
-    }
-    console.log('Demo mode: scan updated', updatedScan)
-    return updatedScan
-  }
-
+  requireSupabaseConfig()
   try {
     const updates: Partial<Scan> = {
       status,
@@ -295,20 +319,57 @@ export const updateScanStatus = async (scanId: string, status: Scan['status'], m
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase update error, using demo response:', error)
-    return {
-      id: scanId,
+    console.error('Supabase update error:', error)
+    throw error
+  }
+}
+
+export const updateScanStatusServer = async (
+  scanId: string,
+  status: Scan['status'],
+  metadata?: Record<string, unknown>,
+  extraUpdates?: Partial<Scan>
+) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const updates: Partial<Scan> = {
       status,
       updated_at: new Date().toISOString()
     }
+
+    if (status === 'completed' || status === 'failed') {
+      updates.end_time = new Date().toISOString()
+    }
+
+    if (metadata) {
+      updates.metadata = metadata
+    }
+
+    if (extraUpdates) {
+      Object.assign(updates, extraUpdates)
+    }
+
+    const { data, error } = await supabaseServer
+      .from('scans')
+      .update(updates)
+      .eq('id', scanId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    if (error && typeof error === 'object' && (error as { code?: string }).code === 'PGRST116') {
+      console.warn('Supabase update warning: no rows updated for scan', scanId)
+      return null
+    }
+    console.error('Supabase update error:', error)
+    throw error
   }
 }
 
 export const getScansForUser = async (userId: string) => {
-  if (isDemoMode) {
-    return createDemoScans()
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('scans')
@@ -319,17 +380,13 @@ export const getScansForUser = async (userId: string) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase query error, using demo data:', error)
-    return createDemoScans()
+    console.error('Supabase query error:', error)
+    throw error
   }
 }
 
 export const getScanById = async (scanId: string) => {
-  if (isDemoMode) {
-    const demoScans = createDemoScans()
-    return demoScans.find(s => s.id === scanId) || demoScans[0]
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('scans')
@@ -340,22 +397,30 @@ export const getScanById = async (scanId: string) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase query error, using demo data:', error)
-    return createDemoScans()[0]
+    console.error('Supabase query error:', error)
+    throw error
+  }
+}
+
+export const getScanByIdServer = async (scanId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer
+      .from('scans')
+      .select('*')
+      .eq('id', scanId)
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Supabase query error:', error)
+    throw error
   }
 }
 
 export const insertReport = async (report: Omit<Report, 'id' | 'generated_at'>) => {
-  if (isDemoMode) {
-    const newReport = {
-      ...report,
-      id: `demo-report-${Date.now()}`,
-      generated_at: new Date().toISOString()
-    }
-    console.log('Demo mode: report created', newReport)
-    return newReport
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('reports')
@@ -366,27 +431,30 @@ export const insertReport = async (report: Omit<Report, 'id' | 'generated_at'>) 
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase insert error, using demo response:', error)
-    return {
-      ...report,
-      id: `demo-report-${Date.now()}`,
-      generated_at: new Date().toISOString()
-    }
+    console.error('Supabase insert error:', error)
+    throw error
+  }
+}
+
+export const insertReportServer = async (report: Omit<Report, 'id' | 'generated_at'>) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer
+      .from('reports')
+      .insert([{ ...report, generated_at: new Date().toISOString() }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Supabase insert error:', error)
+    throw error
   }
 }
 
 export const getReportByScanId = async (scanId: string) => {
-  if (isDemoMode) {
-    return {
-      id: 'demo-report-1',
-      scan_id: scanId,
-      findings: [],
-      summary: 'Demo scan completed successfully',
-      risk_score: 3,
-      generated_at: new Date().toISOString()
-    }
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('reports')
@@ -397,28 +465,30 @@ export const getReportByScanId = async (scanId: string) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase query error, using demo data:', error)
-    return {
-      id: 'demo-report-1',
-      scan_id: scanId,
-      findings: [],
-      summary: 'Demo scan completed successfully',
-      risk_score: 3,
-      generated_at: new Date().toISOString()
-    }
+    console.error('Supabase query error:', error)
+    throw error
+  }
+}
+
+export const getReportByScanIdServer = async (scanId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer
+      .from('reports')
+      .select('*')
+      .eq('scan_id', scanId)
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Supabase query error:', error)
+    throw error
   }
 }
 
 export const insertScanLog = async (log: Omit<ScanLog, 'id'>) => {
-  if (isDemoMode) {
-    const newLog = {
-      ...log,
-      id: `demo-log-${Date.now()}`
-    }
-    console.log('Demo mode: log created', newLog)
-    return newLog
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('scan_logs')
@@ -429,36 +499,30 @@ export const insertScanLog = async (log: Omit<ScanLog, 'id'>) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase insert error, using demo response:', error)
-    return {
-      ...log,
-      id: `demo-log-${Date.now()}`
-    }
+    console.error('Supabase insert error:', error)
+    throw error
+  }
+}
+
+export const insertScanLogServer = async (log: Omit<ScanLog, 'id'>) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer
+      .from('scan_logs')
+      .insert([log])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Supabase insert error:', error)
+    throw error
   }
 }
 
 export const getScanLogs = async (scanId: string) => {
-  if (isDemoMode) {
-    return [
-      {
-        id: 'demo-log-1',
-        scan_id: scanId,
-        timestamp: new Date().toISOString(),
-        level: 'info' as const,
-        message: 'Scan started',
-        raw_output: 'Starting Nmap scan...'
-      },
-      {
-        id: 'demo-log-2',
-        scan_id: scanId,
-        timestamp: new Date().toISOString(),
-        level: 'info' as const,
-        message: 'Scan completed',
-        raw_output: 'Nmap scan completed successfully'
-      }
-    ]
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('scan_logs')
@@ -469,31 +533,30 @@ export const getScanLogs = async (scanId: string) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase query error, using demo data:', error)
-    return [
-      {
-        id: 'demo-log-1',
-        scan_id: scanId,
-        timestamp: new Date().toISOString(),
-        level: 'info' as const,
-        message: 'Demo scan completed',
-        raw_output: 'Demo output for development'
-      }
-    ]
+    console.error('Supabase query error:', error)
+    throw error
+  }
+}
+
+export const getScanLogsServer = async (scanId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  try {
+    const { data, error } = await supabaseServer
+      .from('scan_logs')
+      .select('*')
+      .eq('scan_id', scanId)
+      .order('timestamp', { ascending: true })
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Supabase query error:', error)
+    throw error
   }
 }
 
 export const createNotification = async (notification: Omit<Notification, 'id' | 'created_at'>) => {
-  if (isDemoMode) {
-    const newNotification = {
-      ...notification,
-      id: `demo-notification-${Date.now()}`,
-      created_at: new Date().toISOString()
-    }
-    console.log('Demo mode: notification created', newNotification)
-    return newNotification
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('notifications')
@@ -504,20 +567,13 @@ export const createNotification = async (notification: Omit<Notification, 'id' |
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase insert error, using demo response:', error)
-    return {
-      ...notification,
-      id: `demo-notification-${Date.now()}`,
-      created_at: new Date().toISOString()
-    }
+    console.error('Supabase insert error:', error)
+    throw error
   }
 }
 
 export const getUserNotifications = async (userId: string) => {
-  if (isDemoMode) {
-    return []
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('notifications')
@@ -528,17 +584,13 @@ export const getUserNotifications = async (userId: string) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase query error, using demo data:', error)
-    return []
+    console.error('Supabase query error:', error)
+    throw error
   }
 }
 
 export const markNotificationAsRead = async (notificationId: string) => {
-  if (isDemoMode) {
-    console.log('Demo mode: notification marked as read', notificationId)
-    return { id: notificationId, read: true }
-  }
-
+  requireSupabaseConfig()
   try {
     const { data, error } = await supabase
       .from('notifications')
@@ -550,8 +602,8 @@ export const markNotificationAsRead = async (notificationId: string) => {
     if (error) throw error
     return data
   } catch (error) {
-    console.warn('Supabase update error, using demo response:', error)
-    return { id: notificationId, read: true }
+    console.error('Supabase update error:', error)
+    throw error
   }
 }
 

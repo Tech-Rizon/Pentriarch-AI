@@ -1,6 +1,6 @@
 // Advanced AI Analysis API - Multi-step reasoning and intelligent vulnerability analysis
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, getScanById, getScanLogs } from '@/lib/supabase'
+import { getCurrentUserServer, getScanByIdServer, getScanLogsServer } from '@/lib/supabase'
 import { aiAnalysisEngine } from '@/lib/aiAnalysisEngine'
 
 interface AnalysisRequest {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get scan data
-    const scan = await getScanById(scanId)
+    const scan = await getScanByIdServer(scanId)
     if (!scan) {
       return NextResponse.json({ error: 'Scan not found' }, { status: 404 })
     }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get scan logs for context
-    const scanLogs = await getScanLogs(scanId)
+    const scanLogs = await getScanLogsServer(scanId)
     const logMessages = scanLogs.map(log => log.message)
 
     // Prepare vulnerability context

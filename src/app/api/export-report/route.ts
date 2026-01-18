@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, getReportByScanId, getScanById } from '@/lib/supabase'
+import { getCurrentUserServer, getReportByScanIdServer, getScanByIdServer, getScanLogsServer } from '@/lib/supabase'
 
 interface ReportFinding {
   title: string
@@ -52,13 +52,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get scan and verify ownership
-    const scan = await getScanById(scanId)
+    const scan = await getScanByIdServer(scanId)
     if (scan.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Get report
-    const report = await getReportByScanId(scanId)
+    const report = await getReportByScanIdServer(scanId)
     if (!report) {
       return NextResponse.json({
         error: 'Report not found. Generate report first.'
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     let scanLogs = []
     if (includeRawOutput) {
       const { getScanLogs } = await import('@/lib/supabase')
-      scanLogs = await getScanLogs(scanId)
+      scanLogs = await getScanLogsServer(scanId)
     }
 
     const exportData: ReportData = {

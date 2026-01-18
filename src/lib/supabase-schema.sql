@@ -120,8 +120,15 @@ CREATE POLICY "Users can view own reports" ON public.reports
         )
     );
 
-CREATE POLICY "System can insert reports" ON public.reports
-    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "System can insert reports" ON public.reports;
+CREATE POLICY "Users can insert own reports" ON public.reports
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.scans
+            WHERE scans.id = reports.scan_id
+            AND scans.user_id = auth.uid()
+        )
+    );
 
 -- RLS Policies for scan_logs
 CREATE POLICY "Users can view own scan logs" ON public.scan_logs
@@ -133,8 +140,15 @@ CREATE POLICY "Users can view own scan logs" ON public.scan_logs
         )
     );
 
-CREATE POLICY "System can insert scan logs" ON public.scan_logs
-    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "System can insert scan logs" ON public.scan_logs;
+CREATE POLICY "Users can insert own scan logs" ON public.scan_logs
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.scans
+            WHERE scans.id = scan_logs.scan_id
+            AND scans.user_id = auth.uid()
+        )
+    );
 
 -- RLS Policies for notifications
 CREATE POLICY "Users can view own notifications" ON public.notifications
@@ -143,8 +157,9 @@ CREATE POLICY "Users can view own notifications" ON public.notifications
 CREATE POLICY "Users can update own notifications" ON public.notifications
     FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "System can insert notifications" ON public.notifications
-    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
+CREATE POLICY "Users can insert own notifications" ON public.notifications
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- RLS Policies for user_settings
 CREATE POLICY "Users can view own settings" ON public.user_settings
@@ -155,3 +170,84 @@ CREATE POLICY "Users can update own settings" ON public.user_settings
 
 CREATE POLICY "Users can insert own settings" ON public.user_settings
     FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_scans_user_id ON public.scans(user_id);
+CREATE INDEX IF NOT EXISTS idx_scans_status ON public.scans(status);
+CREATE INDEX IF NOT EXISTS idx_scans_created_at ON public.scans(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scan_logs_scan_id ON public.scan_logs(scan_id);
+CREATE INDEX IF NOT EXISTS idx_scan_logs_timestamp ON public.scan_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(read);
+CREATE INDEX IF NOT EXISTS idx_reports_scan_id ON public.reports(scan_id);
+
+-- Create updated_at trigger function
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers for updated_at
+CREATE TRIGGER update_user_profiles_updated_at
+    BEFORE UPDATE ON public.user_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER update_scans_updated_at
+    BEFORE UPDATE ON public.scans
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER update_user_settings_updated_at
+    BEFORE UPDATE ON public.user_settings
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Create function to handle new user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.user_profiles (id, email, full_name)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email)
+    );
+
+    INSERT INTO public.user_settings (user_id)
+    VALUES (NEW.id);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for new user signup
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create function to create notification
+CREATE OR REPLACE FUNCTION public.create_notification(
+    p_user_id UUID,
+    p_type TEXT,
+    p_title TEXT,
+    p_message TEXT,
+    p_scan_id UUID DEFAULT NULL,
+    p_severity TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+    notification_id UUID;
+BEGIN
+    INSERT INTO public.notifications (user_id, type, title, message, scan_id, severity)
+    VALUES (p_user_id, p_type, p_title, p_message, p_scan_id, p_severity)
+    RETURNING id INTO notification_id;
+
+    RETURN notification_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;

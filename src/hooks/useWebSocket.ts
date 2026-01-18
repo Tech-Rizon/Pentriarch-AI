@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { webSocketManager, type WebSocketMessage, type ScanProgress, type ContainerStatus, type NotificationData } from '@/lib/websocket'
 

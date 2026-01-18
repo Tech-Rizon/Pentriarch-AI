@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -7,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Shield, Terminal, Activity, User, Settings, LogOut } from 'lucide-react'
 import PromptConsole from '@/components/PromptConsole'
+import ChatKitConsole from '@/components/ChatKitConsole'
 import ScanDashboard from '@/components/ScanDashboard'
 import SecurityWorkspace from '@/components/SecurityWorkspace'
 import SettingsPage from '@/components/SettingsPage'
@@ -23,6 +26,7 @@ export interface AppUser extends Record<string, unknown> {
 }
 
 export default function Dashboard() {
+  const chatKitEnabled = process.env.NEXT_PUBLIC_CHATKIT_ENABLED === 'true'
   const [user, setUser] = useState<AppUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('workspace')
@@ -170,7 +174,7 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="console" className="space-y-6">
-            <PromptConsole />
+            {chatKitEnabled ? <ChatKitConsole /> : <PromptConsole />}
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6">

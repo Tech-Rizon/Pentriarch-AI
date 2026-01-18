@@ -25,6 +25,7 @@ import {
   Settings,
   Container
 } from 'lucide-react'
+import { getAccessTokenClient } from '@/lib/supabase'
 
 interface ContainerStats {
   memory_usage: string
@@ -91,9 +92,17 @@ export default function ContainerManager({ scanId, onStatusChange }: ContainerMa
   const loadContainerStatus = async () => {
     try {
       setIsRefreshing(true)
+      const accessToken = await getAccessTokenClient()
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
 
       // Get container status
-      const statusResponse = await fetch(`/api/containers/status${scanId ? `?scanId=${scanId}` : ''}`)
+      const statusResponse = await fetch(
+        `/api/containers/status${scanId ? `?scanId=${scanId}` : ''}`,
+        { headers }
+      )
       const statusData = await statusResponse.json()
 
       if (statusResponse.ok) {
@@ -103,7 +112,7 @@ export default function ContainerManager({ scanId, onStatusChange }: ContainerMa
 
       // Get logs if we have a scan ID
       if (scanId) {
-        const logsResponse = await fetch(`/api/scans/${scanId}/logs`)
+        const logsResponse = await fetch(`/api/scans/${scanId}/logs`, { headers })
         const logsData = await logsResponse.json()
 
         if (logsResponse.ok && logsData.logs) {
@@ -128,9 +137,14 @@ export default function ContainerManager({ scanId, onStatusChange }: ContainerMa
     if (!scanId || !containerStatus.running) return
 
     try {
+      const accessToken = await getAccessTokenClient()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
       const response = await fetch(`/api/containers/kill`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ scanId })
       })
 

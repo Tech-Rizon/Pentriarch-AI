@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer } from '@/lib/supabase'
-import { routeToolCommand, validateCommand, SECURITY_TOOLS, type Command } from '@/lib/toolsRouter'
+import { ensureUserProfileServer, getCurrentUserServer, insertScanLogServer, insertScanServer, updateScanStatusServer } from '@/lib/supabase'
+import { routeToolCommand, validateCommand, SECURITY_TOOLS, commandToToolString, type Command } from '@/lib/toolsRouter'
 import { dockerManager } from '@/lib/dockerManager'
-import { insertScan, updateScanStatus, insertScanLog } from '@/lib/supabase'
 import { WebSocketBroadcaster } from '@/lib/websocket'
 import { getErrorMessage } from '@/lib/auth-helpers'
 
@@ -14,7 +13,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { tool, target, flags, timeout, description } = await request.json()
+    const body = await request.json()
+    const commandPayload = body?.command ?? {}
+    const scanIdFromBody = body?.scanId as string | undefined
+
+    const tool = body?.tool ?? commandPayload?.tool
+    const target = body?.target ?? commandPayload?.target
+    const flags = body?.flags ?? commandPayload?.flags
+    const timeout = body?.timeout ?? commandPayload?.timeout
+    const description = body?.description ?? commandPayload?.prompt ?? commandPayload?.description
 
     if (!tool || !target) {
       return NextResponse.json({
@@ -39,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Generate and validate command
     const command = routeToolCommand(tool, target, flags)
+    const shellCommand = commandToToolString(command)
     command.timeout = timeout || toolInfo.max_execution_time
 
     const validation = validateCommand(command)
@@ -49,8 +57,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Create scan record
-    const scan = await insertScan({
+    // Create scan record unless one already exists
+    if (!scanIdFromBody) {
+      await ensureUserProfileServer(user)
+    }
+    const scanId = scanIdFromBody || (await insertScanServer({
       user_id: user.id,
       target,
       prompt: description || `Direct execution of ${tool} on ${target}`,
@@ -59,14 +70,14 @@ export async function POST(request: NextRequest) {
       tool_used: tool,
       command_executed: JSON.stringify(command),
       start_time: new Date().toISOString()
-    })
+    })).id
 
     // Execute command in background
-    executeCommandAsync(scan.id, command, user.id)
+    executeCommandAsync(scanId, shellCommand, toolInfo.id, user.id, command.timeout)
 
     return NextResponse.json({
       success: true,
-      scanId: scan.id,
+      scanId: scanId,
       tool: toolInfo.name,
       command: command,
       estimatedTime: command.timeout
@@ -82,26 +93,26 @@ export async function POST(request: NextRequest) {
 }
 
 // Background execution function
-async function executeCommandAsync(scanId: string, command: Command, userId: string) {
+async function executeCommandAsync(scanId: string, command: string, toolId: string, userId: string, timeoutSeconds?: number) {
   const broadcaster = WebSocketBroadcaster.getInstance()
 
   try {
-    await updateScanStatus(scanId, 'running')
+    await updateScanStatusServer(scanId, 'running')
 
     // Broadcast scan start
     broadcaster.broadcastScanProgress(scanId, userId, {
       scanId,
       status: 'starting',
       progress: 0,
-      currentStep: `Starting ${command.tool} execution`,
-      estimatedTimeRemaining: command.timeout
+      currentStep: `Starting ${toolId} execution`,
+      estimatedTimeRemaining: timeoutSeconds
     })
 
-    await insertScanLog({
+    await insertScanLogServer({
       scan_id: scanId,
       timestamp: new Date().toISOString(),
       level: 'info',
-      message: `Starting direct execution: ${command.tool}`,
+      message: `Starting direct execution: ${toolId}`,
       raw_output: JSON.stringify(command)
     })
 
@@ -119,8 +130,8 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
       scanId,
       status: 'running',
       progress: 25,
-      currentStep: `Executing ${command.tool}`,
-      estimatedTimeRemaining: command.timeout
+      currentStep: `Executing ${toolId}`,
+      estimatedTimeRemaining: timeoutSeconds
     })
 
     const result = await dockerManager.executeCommand(
@@ -128,7 +139,7 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
       scanId,
       (output) => {
         // Real-time output logging
-        insertScanLog({
+        insertScanLogServer({
           scan_id: scanId,
           timestamp: new Date().toISOString(),
           level: 'info',
@@ -144,18 +155,20 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
           currentStep: 'Processing output',
           output: output
         })
-      }
+      },
+      typeof timeoutSeconds === 'number' ? timeoutSeconds * 1000 : undefined,
+      userId
     )
 
     if (result.success) {
-      await updateScanStatus(scanId, 'completed', {
+      await updateScanStatusServer(scanId, 'completed', {
         execution_result: result,
         output_length: result.output.length,
         execution_duration: result.duration,
         direct_execution: true
       })
 
-      await insertScanLog({
+      await insertScanLogServer({
         scan_id: scanId,
         timestamp: new Date().toISOString(),
         level: 'info',
@@ -181,13 +194,13 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
       })
 
     } else {
-      await updateScanStatus(scanId, 'failed', {
+      await updateScanStatusServer(scanId, 'failed', {
         execution_error: result.error,
         execution_duration: result.duration,
         direct_execution: true
       })
 
-      await insertScanLog({
+      await insertScanLogServer({
         scan_id: scanId,
         timestamp: new Date().toISOString(),
         level: 'error',
@@ -213,12 +226,12 @@ async function executeCommandAsync(scanId: string, command: Command, userId: str
 
   } catch (error) {
     console.error(`Direct execution failed for scan ${scanId}:`, error)
-    await updateScanStatus(scanId, 'failed', {
+    await updateScanStatusServer(scanId, 'failed', {
       execution_error: getErrorMessage(error),
       direct_execution: true
     })
 
-    await insertScanLog({
+    await insertScanLogServer({
       scan_id: scanId,
       timestamp: new Date().toISOString(),
       level: 'error',

@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, insertScan, updateScanStatus } from '@/lib/supabase'
+import { ensureUserProfileServer, getCurrentUserServer, insertScanServer, updateScanStatusServer } from '@/lib/supabase'
 import { mcpRouter, selectOptimalModel } from '@/lib/mcpRouter'
-import { routeToolCommand, parseAIResponse } from '@/lib/toolsRouter'
+import { runAgentWorkflow } from '@/lib/agentWorkflow'
+import { routeToolCommand, parseAIResponse, commandToToolString } from '@/lib/toolsRouter'
 import { dockerManager } from '@/lib/dockerManager'
 
 export const runtime = "nodejs";
@@ -43,18 +44,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid user plan' }, { status: 400 });
     }
 
-    // Select optimal AI model based on prompt complexity
-    const selectedModel = selectOptimalModel(prompt, preferredModel, userPlan)
+    const useAgentWorkflow = process.env.AGENT_WORKFLOW_ENABLED === 'true'
+    const agentModelId = process.env.AGENT_MODEL || 'gpt-4.1'
 
-    console.log(`Selected model: ${selectedModel.name} for prompt complexity`)
+    // Select optimal AI model based on prompt complexity (fallback path)
+    const selectedModel = selectOptimalModel(prompt, preferredModel, userPlan)
+    const scanModelId = useAgentWorkflow ? agentModelId : selectedModel.id
+
+    console.log(`Selected model: ${useAgentWorkflow ? `Agent Workflow (${agentModelId})` : selectedModel.name} for prompt complexity`)
 
     // Create scan record
-    const scan = await insertScan({
+    await ensureUserProfileServer(user)
+    const scan = await insertScanServer({
       user_id: user.id,
       target,
       prompt,
       status: 'queued',
-      ai_model: selectedModel.id,
+      ai_model: scanModelId,
       start_time: new Date().toISOString()
     })
 
@@ -88,19 +94,44 @@ Target: "${target}"`
 
     try {
       // Update scan status to running
-      await updateScanStatus(scan.id, 'running')
+      await updateScanStatusServer(scan.id, 'running')
 
-      // Get AI recommendation
-      const aiResponse = await mcpRouter.executePrompt(
-        prompt,
-        selectedModel.id,
-        systemPrompt
-      )
+      let suggestions = []
+      let modelName = selectedModel.name
+      let modelId = selectedModel.id
+      let aiFallbackUsed = false
 
-      console.log('AI Response:', aiResponse.response)
+      if (useAgentWorkflow) {
+        try {
+          const agentResult = await runAgentWorkflow({
+            prompt,
+            target,
+            userId: user.id,
+            userPlan
+          })
+          suggestions = parseAIResponse(agentResult.response)
+          modelName = `Agent Workflow (${agentResult.model})`
+          modelId = agentResult.model
+          console.log('Agent Response:', agentResult.response)
+        } catch (agentError) {
+          console.error('Agent workflow failed, falling back to MCP router:', agentError)
+          aiFallbackUsed = true
+        }
+      }
 
-      // Parse AI response to extract tool recommendation
-      const suggestions = parseAIResponse(aiResponse.response)
+      if (suggestions.length === 0) {
+        // Get AI recommendation via MCP router
+        const aiResponse = await mcpRouter.executePrompt(
+          prompt,
+          selectedModel.id,
+          systemPrompt
+        )
+        console.log('AI Response:', aiResponse.response)
+        suggestions = parseAIResponse(aiResponse.response)
+        modelName = selectedModel.name
+        modelId = selectedModel.id
+        aiFallbackUsed = aiFallbackUsed || useAgentWorkflow
+      }
 
       if (suggestions.length === 0) {
         throw new Error('No valid tool suggestions from AI')
@@ -114,24 +145,29 @@ Target: "${target}"`
         suggestion.target,
         suggestion.flags
       )
+      const shellCommand = commandToToolString(command)
 
       // Update scan with AI recommendation
-      await updateScanStatus(scan.id, 'running', {
-        ai_model_used: selectedModel.id,
+      await updateScanStatusServer(scan.id, 'running', {
+        ai_model_used: modelId,
         ai_reasoning: suggestion.reasoning,
         tool_suggested: suggestion.tool,
         command_generated: JSON.stringify(command),
         risk_assessment: suggestion.risk_assessment,
-        estimated_time: suggestion.estimated_time
+        estimated_time: suggestion.estimated_time,
+        ai_fallback: aiFallbackUsed || undefined
+      }, {
+        tool_used: suggestion.tool,
+        command_executed: JSON.stringify(command)
       })
 
       // Execute command in background (don't await)
-      executeCommandAsync(scan.id, command)
+      executeCommandAsync(scan.id, shellCommand, command.timeout, user.id)
 
       return NextResponse.json({
         success: true,
         scanId: scan.id,
-        model: selectedModel.name,
+        model: modelName,
         suggestion: {
           tool: suggestion.tool,
           reasoning: suggestion.reasoning,
@@ -148,15 +184,19 @@ Target: "${target}"`
       // Fallback to basic tool selection
       const fallbackTool = selectFallbackTool(prompt)
       const fallbackCommand = routeToolCommand(fallbackTool, target)
+      const fallbackShellCommand = commandToToolString(fallbackCommand)
 
-      await updateScanStatus(scan.id, 'running', {
+      await updateScanStatusServer(scan.id, 'running', {
         ai_fallback: true,
         tool_suggested: fallbackTool,
         command_generated: JSON.stringify(fallbackCommand)
+      }, {
+        tool_used: fallbackTool,
+        command_executed: JSON.stringify(fallbackCommand)
       })
 
       // Execute fallback command
-      executeCommandAsync(scan.id, fallbackCommand)
+      executeCommandAsync(scan.id, fallbackShellCommand, fallbackCommand.timeout, user.id)
 
       return NextResponse.json({
         success: true,
@@ -183,7 +223,7 @@ Target: "${target}"`
 }
 
 // Background command execution
-async function executeCommandAsync(scanId: string, command: string | { toString(): string }) {
+async function executeCommandAsync(scanId: string, command: string, timeoutSeconds: number | undefined, userId: string) {
   try {
     const result = await dockerManager.executeCommand(
       command,
@@ -191,17 +231,19 @@ async function executeCommandAsync(scanId: string, command: string | { toString(
       (output) => {
         // In production, this would send real-time updates via WebSocket
         console.log(`Scan ${scanId} output:`, output)
-      }
+      },
+      typeof timeoutSeconds === 'number' ? timeoutSeconds * 1000 : undefined,
+      userId
     )
 
     if (result.success) {
-      await updateScanStatus(scanId, 'completed', {
+      await updateScanStatusServer(scanId, 'completed', {
         execution_result: result,
         output_length: result.output.length,
         execution_duration: result.duration
       })
     } else {
-      await updateScanStatus(scanId, 'failed', {
+      await updateScanStatusServer(scanId, 'failed', {
         execution_error: result.error,
         execution_duration: result.duration
       })
@@ -209,7 +251,7 @@ async function executeCommandAsync(scanId: string, command: string | { toString(
 
   } catch (error) {
     console.error(`Command execution failed for scan ${scanId}:`, error)
-    await updateScanStatus(scanId, 'failed', {
+    await updateScanStatusServer(scanId, 'failed', {
       execution_error: error instanceof Error ? error.message : String(error)
     })
   }

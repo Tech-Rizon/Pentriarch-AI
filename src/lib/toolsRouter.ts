@@ -737,7 +737,11 @@ export const SECURITY_TOOLS: SecurityTool[] = [
 // Command validation schema
 const CommandSchema = z.object({
   tool: z.string(),
-  target: z.string().url().or(z.string().ip()).or(z.string().regex(/^[a-zA-Z0-9.-]+$/)),
+  target: z
+    .string()
+    .url()
+    .or(z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/))
+    .or(z.string().regex(/^[a-zA-Z0-9.-]+$/)),
   flags: z.array(z.string()).optional(),
   timeout: z.number().max(1800).optional(), // Max 30 minutes
   output_file: z.string().optional()
@@ -746,7 +750,7 @@ const CommandSchema = z.object({
 export type Command = z.infer<typeof CommandSchema>
 
 // Input sanitization
-export function sanitizeTarget(target: string): string {
+export function sanitizeTargetHost(target: string): string {
   // Remove any potential command injection attempts
   const cleaned = target
     .replace(/[;&|`$(){}[\]\\]/g, '') // Remove shell metacharacters
@@ -754,13 +758,32 @@ export function sanitizeTarget(target: string): string {
     .trim()
 
   // Validate format
-  if (!/^[a-zA-Z0-9.-]+$/.test(cleaned)) {
-    throw new Error('Invalid target format. Only alphanumeric characters, dots, and hyphens allowed.')
+  if (
+    !/^[a-zA-Z0-9.-]+$/.test(cleaned) &&
+    !/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleaned)
+  ) {
+    throw new Error('Invalid target format. Use a hostname or IPv4 address.')
   }
 
   return cleaned
 }
 
+export function sanitizeTargetUrl(target: string): string {
+  const cleaned = target
+    .replace(/[;&|`$(){}[\]\\]/g, '')
+    .replace(/\s+/g, '')
+    .trim()
+
+  if (/^https?:\/\/[^\s]+$/i.test(cleaned)) {
+    return cleaned
+  }
+
+  if (/^[a-zA-Z0-9.-]+$/.test(cleaned) || /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleaned)) {
+    return `http://${cleaned}`
+  }
+
+  throw new Error('Invalid target format. Use a URL or hostname.')
+}
 export function sanitizeFlags(flags: string[]): string[] {
   return flags
     .filter(flag => typeof flag === 'string')
@@ -774,7 +797,7 @@ export function generateNmapCommand(target: string, flags?: string[]): Command {
   if (!tool) {
     throw new Error('Nmap tool configuration not found')
   }
-  const sanitizedTarget = sanitizeTarget(target)
+  const sanitizedTarget = sanitizeTargetHost(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
 
   return {
@@ -790,7 +813,7 @@ export function generateNiktoCommand(target: string, flags?: string[]): Command 
   if (!tool) {
     throw new Error('Nikto tool configuration not found')
   }
-  const sanitizedTarget = sanitizeTarget(target)
+  const sanitizedTarget = sanitizeTargetUrl(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
 
   return {
@@ -806,7 +829,7 @@ export function generateSqlmapCommand(target: string, flags?: string[]): Command
   if (!tool) {
     throw new Error('Sqlmap tool configuration not found')
   }
-  const sanitizedTarget = sanitizeTarget(target)
+  const sanitizedTarget = sanitizeTargetUrl(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
 
   return {
@@ -822,7 +845,7 @@ export function generateWpscanCommand(target: string, flags?: string[]): Command
   if (!tool) {
     throw new Error('WPScan tool configuration not found')
   }
-  const sanitizedTarget = sanitizeTarget(target)
+  const sanitizedTarget = sanitizeTargetUrl(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
 
   return {
@@ -838,7 +861,7 @@ export function generateGobusterCommand(target: string, flags?: string[]): Comma
   if (!tool) {
     throw new Error('Gobuster tool configuration not found')
   }
-  const sanitizedTarget = sanitizeTarget(target)
+  const sanitizedTarget = sanitizeTargetUrl(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
 
   return {
@@ -854,7 +877,7 @@ export function generateWhatwebCommand(target: string, flags?: string[]): Comman
   if (!tool) {
     throw new Error('Whatweb tool configuration not found')
   }
-  const sanitizedTarget = sanitizeTarget(target)
+  const sanitizedTarget = sanitizeTargetUrl(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
 
   return {
@@ -912,7 +935,7 @@ export function commandToShellString(command: Command): string {
       shellCommand += ` -h ${command.target}`
       break
     case 'sqlmap':
-      shellCommand += ` -u "${command.target}"`
+      shellCommand += ` -u ${command.target}`
       break
     case 'wpscan':
       shellCommand += ` --url ${command.target}`
@@ -927,6 +950,43 @@ export function commandToShellString(command: Command): string {
   // Add timeout wrapper
   if (command.timeout) {
     shellCommand = `timeout ${command.timeout}s ${shellCommand}`
+  }
+
+  return shellCommand
+}
+
+export function commandToToolString(command: Command): string {
+  const tool = SECURITY_TOOLS.find(t => t.id === command.tool)
+  if (!tool) {
+    throw new Error(`Tool ${command.tool} not found`)
+  }
+
+  let shellCommand = command.tool
+
+  if (command.flags && command.flags.length > 0) {
+    shellCommand += ` ${command.flags.join(' ')}`
+  }
+
+  switch (command.tool) {
+    case 'nmap':
+    case 'masscan':
+    case 'whatweb':
+      shellCommand += ` ${command.target}`
+      break
+    case 'nikto':
+      shellCommand += ` -h ${command.target}`
+      break
+    case 'sqlmap':
+      shellCommand += ` -u ${command.target}`
+      break
+    case 'wpscan':
+      shellCommand += ` --url ${command.target}`
+      break
+    case 'gobuster':
+      shellCommand += ` -u ${command.target}`
+      break
+    default:
+      shellCommand += ` ${command.target}`
   }
 
   return shellCommand

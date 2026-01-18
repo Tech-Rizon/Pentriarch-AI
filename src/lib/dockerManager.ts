@@ -1,9 +1,10 @@
 // src/lib/dockerManager.ts
 import { EventEmitter } from "node:events";
-import { spawn } from "node:child_process";
-import { logScanActivity, updateScanStatus } from "./supabase";
+import { spawn, spawnSync } from "node:child_process";
+import { insertScanLogServer, updateScanStatusServer } from "./supabase";
 import { WebSocketBroadcaster } from "./websocket";
 import { TOOL_IMAGES } from "./toolImages";
+import { generateDetailedReportForScan } from "./reporting";
 // If you have helpers, keep/import them. Otherwise remove this line.
 // import { normalizeNmapFlags, needsRawSockets } from "./flagHelpers";
 
@@ -29,7 +30,7 @@ interface ScanExecution {
   image?: string;
 }
 
-const REAL = process.env.REAL_EXECUTION === "true";
+const REAL = process.env.REAL_EXECUTION !== "false";
 const isWin = typeof process !== "undefined" && process.platform === "win32";
 const DOCKER = isWin ? "docker.exe" : "docker";
 
@@ -72,13 +73,20 @@ class DockerManager extends EventEmitter {
     scanId: string,
     command: string,
     userId: string,
-    _target?: string
+    _target?: string,
+    timeoutMs?: number
   ): Promise<{ success: boolean; output?: string; error?: string; containerId?: string }> {
     if (!REAL) {
       const msg =
-        "REAL_EXECUTION=false (or unset). Simulations were removed. Set REAL_EXECUTION=true to run scans.";
-      await updateScanStatus(scanId, "failed", { execution_error: msg, direct_execution: true });
-      await logScanActivity(scanId, userId, "error", msg);
+        "REAL_EXECUTION=false. Set REAL_EXECUTION=true to enable real scans.";
+      await updateScanStatusServer(scanId, "failed", { execution_error: msg, direct_execution: true });
+      await insertScanLogServer({
+        scan_id: scanId,
+        timestamp: new Date().toISOString(),
+        level: "error",
+        message: msg,
+        raw_output: msg
+      });
       throw new Error(msg);
     }
     return this.realExecution(scanId, command, userId);
@@ -88,7 +96,8 @@ class DockerManager extends EventEmitter {
   private async realExecution(
     scanId: string,
     command: string,
-    userId: string
+    userId: string,
+    timeoutMs?: number
   ): Promise<{ success: boolean; output?: string; error?: string; containerId?: string }> {
     const tool = detectTool(command);
     if (!tool || !TOOL_IMAGES[tool]) {
@@ -126,8 +135,14 @@ class DockerManager extends EventEmitter {
     };
     this.runningScans.set(scanId, execution);
 
-    await updateScanStatus(scanId, "running");
-    await logScanActivity(scanId, userId, "info", `Starting REAL scan: ${command}`);
+    await updateScanStatusServer(scanId, "running");
+    await insertScanLogServer({
+      scan_id: scanId,
+      timestamp: new Date().toISOString(),
+      level: "info",
+      message: `Starting REAL scan: ${command}`,
+      raw_output: command
+    });
 
     // Broadcast start
     this.broadcaster.broadcastScanProgress(scanId, userId, {
@@ -143,18 +158,28 @@ class DockerManager extends EventEmitter {
 
     let out = "";
     let err = "";
+    let spawnError: Error | null = null;
 
-    // Hard timeout (10 minutes). Optionally tie this to your Command.timeout from the request.
+    const killAfterMs = typeof timeoutMs === "number" && timeoutMs > 0 ? timeoutMs : 10 * 60 * 1000;
+
+    // Hard timeout (per tool timeout when provided).
     execution.timeout = setTimeout(() => {
       try {
         execution.killed = true;
         child.kill("SIGKILL");
       } catch {}
-    }, 10 * 60 * 1000);
+    }, killAfterMs);
 
     child.stdout.on("data", (d) => {
       const text = d.toString();
       out += text;
+      insertScanLogServer({
+        scan_id: scanId,
+        timestamp: new Date().toISOString(),
+        level: "info",
+        message: "Command output",
+        raw_output: text
+      }).catch(console.error);
       this.broadcaster.broadcastScanProgress(scanId, userId, {
         scanId,
         status: "running",
@@ -167,6 +192,13 @@ class DockerManager extends EventEmitter {
     child.stderr.on("data", (d) => {
       const text = d.toString();
       err += text;
+      insertScanLogServer({
+        scan_id: scanId,
+        timestamp: new Date().toISOString(),
+        level: "error",
+        message: "Command error output",
+        raw_output: text
+      }).catch(console.error);
       this.broadcaster.broadcastScanProgress(scanId, userId, {
         scanId,
         status: "running",
@@ -176,6 +208,35 @@ class DockerManager extends EventEmitter {
       });
     });
 
+    child.on("error", async (error) => {
+      spawnError = error;
+      const message = `Docker execution failed: ${error.message}`;
+      await updateScanStatusServer(scanId, "failed", {
+        execution_error: message,
+        execution_duration: Date.now() - begin,
+        direct_execution: true,
+      });
+      await insertScanLogServer({
+        scan_id: scanId,
+        timestamp: new Date().toISOString(),
+        level: "error",
+        message,
+        raw_output: error.message
+      });
+      this.broadcaster.broadcastScanError(scanId, userId, {
+        message,
+        details: { error: error.message },
+      });
+      this.broadcaster.broadcastContainerStatus(scanId, userId, {
+        scanId,
+        status: "error",
+        uptime: `${Math.round((Date.now() - begin) / 1000)}s`,
+        memoryUsage: "N/A",
+        cpuUsage: "N/A",
+      });
+      this.runningScans.delete(scanId);
+    });
+
     const done = await new Promise<{ code: number | null }>((resolve) =>
       child.on("close", (code) => resolve({ code }))
     );
@@ -183,14 +244,24 @@ class DockerManager extends EventEmitter {
     if (execution.timeout) clearTimeout(execution.timeout);
     const durationMs = Date.now() - begin;
 
+    if (spawnError) {
+      return { success: false, output: out, error: spawnError.message, containerId };
+    }
+
     if (done.code === 0 && !execution.killed) {
-      await updateScanStatus(scanId, "completed", {
+      await updateScanStatusServer(scanId, "completed", {
         execution_result: { tool, image: meta.image },
         output_length: out.length,
         execution_duration: durationMs,
         direct_execution: true,
       });
-      await logScanActivity(scanId, userId, "info", "Scan completed successfully");
+      await insertScanLogServer({
+        scan_id: scanId,
+        timestamp: new Date().toISOString(),
+        level: "info",
+        message: "Scan completed successfully",
+        raw_output: `Execution time: ${durationMs}ms`
+      });
 
       this.broadcaster.broadcastScanComplete(scanId, userId, {
         scanId,
@@ -207,21 +278,23 @@ class DockerManager extends EventEmitter {
       });
 
       this.runningScans.delete(scanId);
+      generateDetailedReportForScan(scanId).catch(console.error);
       return { success: true, output: out, containerId };
     }
 
     // Failed or killed
-    await updateScanStatus(scanId, "failed", {
+    await updateScanStatusServer(scanId, "failed", {
       execution_error: err || "Scan failed",
       execution_duration: durationMs,
       direct_execution: true,
     });
-    await logScanActivity(
-      scanId,
-      userId,
-      "error",
-      execution.killed ? "Scan killed (timeout/cancel)" : (err || "Scan failed")
-    );
+    await insertScanLogServer({
+      scan_id: scanId,
+      timestamp: new Date().toISOString(),
+      level: "error",
+      message: execution.killed ? "Scan killed (timeout/cancel)" : (err || "Scan failed"),
+      raw_output: err || "Scan failed"
+    });
 
     this.broadcaster.broadcastScanError(scanId, userId, {
       message: execution.killed ? "Scan killed" : (err || "Scan failed"),
@@ -246,7 +319,7 @@ class DockerManager extends EventEmitter {
     try {
       execution.killed = true;
       if (execution.timeout) clearTimeout(execution.timeout);
-      await updateScanStatus(scanId, "cancelled");
+      await updateScanStatusServer(scanId, "cancelled");
       this.runningScans.delete(scanId);
       console.log(`Killed REAL scan ${scanId}`);
       return true;
@@ -286,10 +359,29 @@ class DockerManager extends EventEmitter {
   }
 
   async healthCheck(): Promise<{ docker: boolean; image: boolean; containers: number }> {
-    // If you want a real check, you can try spawnSync('docker', ['--version'])
+    let dockerOk = false;
+    let imageOk = false;
+    const image = process.env.KALI_CONTAINER_IMAGE || TOOL_IMAGES.nmap.image;
+
+    try {
+      const dockerVersion = spawnSync(DOCKER, ["--version"], { encoding: "utf-8" });
+      dockerOk = dockerVersion.status === 0;
+    } catch {
+      dockerOk = false;
+    }
+
+    if (dockerOk) {
+      try {
+        const imageCheck = spawnSync(DOCKER, ["images", "-q", image], { encoding: "utf-8" });
+        imageOk = imageCheck.status === 0 && !!imageCheck.stdout?.toString().trim();
+      } catch {
+        imageOk = false;
+      }
+    }
+
     return {
-      docker: true,
-      image: true,
+      docker: dockerOk,
+      image: imageOk,
       containers: this.runningScans.size,
     };
   }
@@ -298,10 +390,12 @@ class DockerManager extends EventEmitter {
   async executeCommand(
     command: string | { toString(): string },
     scanId: string,
-    outputCallback?: (output: string) => void
+    outputCallback?: (output: string) => void,
+    timeoutMs?: number,
+    userId?: string
   ): Promise<{ success: boolean; output: string; duration: number; error?: string }> {
     const startTime = Date.now();
-    const result = await this.executeScan(scanId, command.toString(), "system");
+    const result = await this.executeScan(scanId, command.toString(), userId || "system", undefined, timeoutMs);
     const duration = Date.now() - startTime;
 
     if (outputCallback && result.output) {

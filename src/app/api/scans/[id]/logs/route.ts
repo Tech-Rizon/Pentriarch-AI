@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, getScanById, getScanLogs } from '@/lib/supabase'
+import { getCurrentUserServer, getScanByIdServer, getScanLogsServer } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
@@ -18,13 +18,13 @@ export async function GET(
     const offset = Number.parseInt(searchParams.get('offset') || '0')
 
     // Get scan and verify ownership
-    const scan = await getScanById(scanId)
+    const scan = await getScanByIdServer(scanId)
     if (scan.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Get scan logs
-    let logs = await getScanLogs(scanId)
+    let logs = await getScanLogsServer(scanId)
 
     // Filter by level if specified
     if (level) {
@@ -80,7 +80,7 @@ export async function DELETE(
     const { id: scanId } = await params
 
     // Get scan and verify ownership
-    const scan = await getScanById(scanId)
+    const scan = await getScanByIdServer(scanId)
     if (scan.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }

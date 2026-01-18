@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ClientBody from "./ClientBody";
 
@@ -40,10 +41,17 @@ export default function RootLayout({
 }>) {
   const interClass = inter?.variable || "";
   const jetbrainsMonoClass = jetbrainsMono?.variable || "";
+  const chatKitEnabled = process.env.NEXT_PUBLIC_CHATKIT_ENABLED === "true";
 
   return (
     <html lang="en" className={`${interClass} ${jetbrainsMonoClass} dark`}>
       <body className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 antialiased">
+        {chatKitEnabled && (
+          <Script
+            src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"
+            strategy="afterInteractive"
+          />
+        )}
         <ClientBody>{children}</ClientBody>
       </body>
     </html>

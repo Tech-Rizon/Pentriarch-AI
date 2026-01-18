@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, updateScanStatus } from '@/lib/supabase'
+import { getCurrentUserServer, updateScanStatusServer } from '@/lib/supabase'
 import { dockerManager } from '@/lib/dockerManager'
 
 export async function POST(request: NextRequest) {
@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify scan ownership
-    const { getScanById } = await import('@/lib/supabase')
-    const scan = await getScanById(scanId)
+    const { getScanByIdServer } = await import('@/lib/supabase')
+    const scan = await getScanByIdServer(scanId)
 
     if (scan.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (killed) {
       // Update scan status to cancelled
-      await updateScanStatus(scanId, 'cancelled', {
+      await updateScanStatusServer(scanId, 'cancelled', {
         cancelled_at: new Date().toISOString(),
         cancelled_by: user.id,
         reason: 'Manual termination via Container Manager'

@@ -44,7 +44,7 @@ import {
   FileText,
   BarChart3
 } from 'lucide-react'
-import { getCurrentUserClient, createScan } from '@/lib/supabase'
+import { getAccessTokenClient, getCurrentUserClient, createScan } from '@/lib/supabase'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { SECURITY_TOOLS } from '@/lib/toolsRouter'
 import ContainerManager from './ContainerManager'
@@ -217,17 +217,7 @@ export default function ScanningFlow() {
       }))
 
       // Get JWT from Supabase client (browser)
-      let accessToken = null
-      if (window && window.localStorage) {
-        // Supabase stores session in localStorage under 'supabase.auth.token'
-        const raw = window.localStorage.getItem('supabase.auth.token')
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw)
-            accessToken = parsed?.currentSession?.access_token || null
-          } catch {}
-        }
-      }
+      const accessToken = await getAccessTokenClient()
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (accessToken) {

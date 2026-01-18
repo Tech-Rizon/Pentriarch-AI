@@ -1,10 +1,14 @@
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { dockerManager } from '@/lib/dockerManager'
 
 function getSupabaseClient() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SERVICE_KEY)) {
+    throw new Error('Supabase service credentials are missing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY.')
+  }
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
   )
 }
 
@@ -49,21 +53,11 @@ export async function GET(request: NextRequest) {
     if (activeScans && activeScans.length > 0) {
       for (const scan of activeScans) {
         try {
-          // Check if there's a container running for this scan
-          const containerResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/containers/status?scanId=${scan.id}`,
-            { method: 'GET' }
-          )
-
-          if (containerResponse.ok) {
-            const containerData = await containerResponse.json()
-            if (containerData.status) {
-              containerStatuses.push({
-                scanId: scan.id,
-                ...containerData.status
-              })
-            }
-          }
+          const status = await dockerManager.getContainerStatus(scan.id)
+          containerStatuses.push({
+            scanId: scan.id,
+            ...status
+          })
         } catch (error) {
           console.debug('Could not fetch container status for scan', scan.id, error)
         }

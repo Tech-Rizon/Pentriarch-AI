@@ -117,8 +117,15 @@ CREATE POLICY "Users can view own reports" ON public.reports
         )
     );
 
-CREATE POLICY "System can insert reports" ON public.reports
-    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "System can insert reports" ON public.reports;
+CREATE POLICY "Users can insert own reports" ON public.reports
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.scans
+            WHERE scans.id = reports.scan_id
+            AND scans.user_id = auth.uid()
+        )
+    );
 
 -- RLS Policies for scan_logs
 CREATE POLICY "Users can view own scan logs" ON public.scan_logs
@@ -130,8 +137,15 @@ CREATE POLICY "Users can view own scan logs" ON public.scan_logs
         )
     );
 
-CREATE POLICY "System can insert scan logs" ON public.scan_logs
-    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "System can insert scan logs" ON public.scan_logs;
+CREATE POLICY "Users can insert own scan logs" ON public.scan_logs
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.scans
+            WHERE scans.id = scan_logs.scan_id
+            AND scans.user_id = auth.uid()
+        )
+    );
 
 -- RLS Policies for notifications
 CREATE POLICY "Users can view own notifications" ON public.notifications
@@ -140,8 +154,9 @@ CREATE POLICY "Users can view own notifications" ON public.notifications
 CREATE POLICY "Users can update own notifications" ON public.notifications
     FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "System can insert notifications" ON public.notifications
-    FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
+CREATE POLICY "Users can insert own notifications" ON public.notifications
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- RLS Policies for user_settings
 CREATE POLICY "Users can view own settings" ON public.user_settings

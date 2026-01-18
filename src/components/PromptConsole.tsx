@@ -23,7 +23,7 @@ import {
   Container,
   Activity
 } from 'lucide-react'
-import { getCurrentUserClient } from '@/lib/supabase'
+import { getAccessTokenClient, getCurrentUserClient } from '@/lib/supabase'
 import { webSocketManager, type WebSocketMessage } from '@/lib/websocket'
 import ContainerManager from './ContainerManager'
 
@@ -140,7 +140,10 @@ export default function PromptConsole() {
 
       case 'scan_error':
         if (message.scanId === activeScanId) {
-          addMessage('system', `❌ **Scan Error**\n\n**Error:** ${message.data.error || 'Unknown error'}\n**Scan ID:** ${message.scanId}`)
+          addMessage('system', `Error: **Scan Error**
+
+**Error:** ${normalizeErrorMessage((message.data as { error?: unknown })?.error || message.data)}
+**Scan ID:** ${message.scanId}`)
           setActiveScanId(null)
           setRealTimeOutput([])
         }
@@ -164,6 +167,23 @@ export default function PromptConsole() {
     setMessages(prev => [...prev, message])
   }
 
+  const normalizeErrorMessage = (value: unknown) => {
+    if (value instanceof Error) {
+      return value.message
+    }
+    if (typeof value === 'string') {
+      return value
+    }
+    if (value && typeof value === 'object') {
+      try {
+        return JSON.stringify(value)
+      } catch {
+        return String(value)
+      }
+    }
+    return 'Unknown error'
+  }
+
   const handleScan = async () => {
     if (!input.trim() || !target.trim()) return
 
@@ -174,12 +194,16 @@ export default function PromptConsole() {
     setInput('')
 
     try {
+      const accessToken = await getAccessTokenClient()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
+
       // Send to AI for processing
       const response = await fetch('/api/scan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           prompt: input,
           target: target,
@@ -240,7 +264,12 @@ export default function PromptConsole() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/status/${scanId}`)
+        const accessToken = await getAccessTokenClient()
+        const headers: Record<string, string> = {}
+        if (accessToken) {
+          headers['Authorization'] = `Bearer ${accessToken}`
+        }
+        const response = await fetch(`/api/status/${scanId}`, { headers })
         const data = await response.json()
 
         if (data.scan.status === 'completed') {
@@ -262,7 +291,7 @@ ${output}
           addMessage('result', resultMessage, { ...scanResult, status: 'completed' })
 
         } else if (data.scan.status === 'failed') {
-          addMessage('system', `❌ Scan failed: ${data.scan.metadata?.execution_error || 'Unknown error'}`)
+          addMessage('system', `Scan failed: ${normalizeErrorMessage(data.scan.metadata?.execution_error ?? data.scan.metadata ?? data.scan)}`)
 
         } else if (attempts < maxAttempts) {
           attempts++
