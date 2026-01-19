@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import ClientBody from "./ClientBody";
 
@@ -53,6 +54,7 @@ export default function RootLayout({
           />
         )}
         <ClientBody>{children}</ClientBody>
+        <SpeedInsights />
       </body>
     </html>
   );
