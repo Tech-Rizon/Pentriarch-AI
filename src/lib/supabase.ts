@@ -22,7 +22,7 @@ const requireSupabaseServiceConfig = () => {
   }
 }
 
-const getSupabaseServerClient = () => {
+export const getSupabaseServerClient = () => {
   requireSupabaseServiceConfig()
   return createClient(supabaseUrl || '', supabaseServiceKey || '', {
     auth: {
@@ -168,6 +168,75 @@ export interface UserSettings {
   updated_at: string
 }
 
+export interface Project {
+  id: string
+  owner_id: string
+  name: string
+  created_at: string
+}
+
+export interface TargetScope {
+  allowedPathPrefixes: string[]
+  excludedPathPrefixes: string[]
+  maxRequestsPerMinute: number
+  maxConcurrency: number
+}
+
+export interface Target {
+  id: string
+  project_id: string
+  base_url: string
+  host: string
+  verified: boolean
+  active_scans_allowed: boolean
+  scope: TargetScope | null
+  created_at: string
+}
+
+export interface TargetVerification {
+  id: string
+  target_id: string
+  method: 'well_known' | 'dns_txt' | 'loa'
+  token: string
+  status: 'pending' | 'verified' | 'failed' | 'expired'
+  verified_at?: string | null
+  created_at: string
+  expires_at?: string | null
+}
+
+export interface ScanJob {
+  id: string
+  target_id: string
+  scan_type: string
+  status: 'queued' | 'running' | 'complete' | 'failed' | 'cancelled'
+  started_at?: string | null
+  ended_at?: string | null
+  artifacts?: Record<string, unknown>
+  created_by?: string | null
+  created_at: string
+}
+
+export interface FindingRecord {
+  id: string
+  scan_job_id: string
+  title: string
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical'
+  confidence: 'low' | 'medium' | 'high'
+  category?: string | null
+  description?: string | null
+  recommendation?: string | null
+  evidence_summary?: string | null
+  created_at: string
+}
+
+export interface EvidenceRecord {
+  id: string
+  finding_id: string
+  type: string
+  data: Record<string, unknown>
+  created_at: string
+}
+
 // Auth helper functions
 
 // Server-side: only import in server components or API routes
@@ -214,10 +283,21 @@ export const getCurrentUserClient = async () => {
   requireSupabaseConfig()
   try {
     const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) throw error
+    if (error) {
+      const errorName = (error as { name?: string })?.name || ''
+      const status = (error as { status?: number })?.status
+      if (errorName === 'AuthSessionMissingError' || status === 400) {
+        return null
+      }
+      throw error
+    }
     return user
   } catch (error) {
-    console.warn('Supabase auth error (client-side):', error)
+    const errorName = (error as { name?: string })?.name || ''
+    const status = (error as { status?: number })?.status
+    if (errorName !== 'AuthSessionMissingError' && status !== 400) {
+      console.warn('Supabase auth error (client-side):', error)
+    }
     return null
   }
 }
@@ -226,10 +306,21 @@ export const getAccessTokenClient = async () => {
   requireSupabaseConfig()
   try {
     const { data, error } = await supabase.auth.getSession()
-    if (error) throw error
+    if (error) {
+      const errorName = (error as { name?: string })?.name || ''
+      const status = (error as { status?: number })?.status
+      if (errorName === 'AuthSessionMissingError' || status === 400) {
+        return null
+      }
+      throw error
+    }
     return data.session?.access_token || null
   } catch (error) {
-    console.warn('Supabase session error (client-side):', error)
+    const errorName = (error as { name?: string })?.name || ''
+    const status = (error as { status?: number })?.status
+    if (errorName !== 'AuthSessionMissingError' && status !== 400) {
+      console.warn('Supabase session error (client-side):', error)
+    }
     return null
   }
 }
@@ -605,6 +696,146 @@ export const markNotificationAsRead = async (notificationId: string) => {
     console.error('Supabase update error:', error)
     throw error
   }
+}
+
+export const ensureDefaultProjectServer = async (userId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('projects')
+    .select('*')
+    .eq('owner_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single()
+
+  if (!error && data) return data as Project
+
+  const { data: created, error: insertError } = await supabaseServer
+    .from('projects')
+    .insert([{ owner_id: userId, name: 'Default Project' }])
+    .select()
+    .single()
+
+  if (insertError) throw insertError
+  return created as Project
+}
+
+export const getProjectByIdServer = async (projectId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('projects')
+    .select('*')
+    .eq('id', projectId)
+    .single()
+
+  if (error) throw error
+  return data as Project
+}
+
+export const listTargetsForOwnerServer = async (userId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data: projects, error: projectError } = await supabaseServer
+    .from('projects')
+    .select('id')
+    .eq('owner_id', userId)
+
+  if (projectError) throw projectError
+  const projectIds = (projects || []).map((project) => project.id)
+  if (projectIds.length === 0) return []
+
+  const { data, error } = await supabaseServer
+    .from('targets')
+    .select('*')
+    .in('project_id', projectIds)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as Target[]
+}
+
+export const createTargetServer = async (projectId: string, target: Omit<Target, 'id' | 'created_at' | 'project_id'>) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('targets')
+    .insert([{ ...target, project_id: projectId }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Target
+}
+
+export const getTargetByIdServer = async (targetId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('targets')
+    .select('*')
+    .eq('id', targetId)
+    .single()
+
+  if (error) throw error
+  return data as Target
+}
+
+export const createTargetVerificationServer = async (verification: Omit<TargetVerification, 'id' | 'created_at' | 'status'> & { status?: TargetVerification['status'] }) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('target_verifications')
+    .insert([{
+      ...verification,
+      status: verification.status || 'pending'
+    }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as TargetVerification
+}
+
+export const getLatestPendingVerificationServer = async (targetId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('target_verifications')
+    .select('*')
+    .eq('target_id', targetId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error) throw error
+  return data as TargetVerification
+}
+
+export const updateTargetVerificationStatusServer = async (verificationId: string, status: TargetVerification['status'], verifiedAt?: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const updates: Partial<TargetVerification> = { status }
+  if (verifiedAt) {
+    updates.verified_at = verifiedAt
+  }
+
+  const { data, error } = await supabaseServer
+    .from('target_verifications')
+    .update(updates)
+    .eq('id', verificationId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as TargetVerification
+}
+
+export const markTargetVerifiedServer = async (targetId: string) => {
+  const supabaseServer = getSupabaseServerClient()
+  const { data, error } = await supabaseServer
+    .from('targets')
+    .update({ verified: true, active_scans_allowed: true })
+    .eq('id', targetId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Target
 }
 
 // Convenient wrapper for docker manager logging

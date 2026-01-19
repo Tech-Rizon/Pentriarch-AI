@@ -787,6 +787,7 @@ export function sanitizeTargetUrl(target: string): string {
 export function sanitizeFlags(flags: string[]): string[] {
   return flags
     .filter(flag => typeof flag === 'string')
+    .flatMap(flag => flag.split(/\s+/))
     .map(flag => flag.replace(/[;&|`$(){}[\]\\]/g, ''))
     .filter(flag => flag.length > 0 && flag.length < 100)
 }
@@ -863,11 +864,12 @@ export function generateGobusterCommand(target: string, flags?: string[]): Comma
   }
   const sanitizedTarget = sanitizeTargetUrl(target)
   const sanitizedFlags = flags ? sanitizeFlags(flags) : tool.default_flags
+  const normalizedFlags = normalizeGobusterFlags(sanitizedFlags, tool.default_flags)
 
   return {
     tool: 'gobuster',
     target: sanitizedTarget,
-    flags: sanitizedFlags,
+    flags: normalizedFlags,
     timeout: tool.max_execution_time
   }
 }
@@ -992,6 +994,62 @@ export function commandToToolString(command: Command): string {
   return shellCommand
 }
 
+function normalizeGobusterFlags(flags: string[], defaultFlags: string[]): string[] {
+  const normalized: string[] = []
+  const seen = new Set<string>()
+  const defaultWordlist = getFlagValue(defaultFlags, '-w') || '/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt'
+  const placeholderWordlist = '/path/to/wordlist.txt'
+
+  for (let i = 0; i < flags.length; i += 1) {
+    const flag = flags[i]
+
+    if (flag === '-u' || flag === '--url') {
+      i += 1
+      continue
+    }
+
+    if (flag === '-w' || flag === '--wordlist') {
+      const value = flags[i + 1]
+      if (!value || value === placeholderWordlist) {
+        normalized.push(flag, defaultWordlist)
+      } else {
+        normalized.push(flag, value)
+      }
+      i += 1
+      continue
+    }
+
+    if (flag === 'dir') {
+      if (!seen.has('dir')) {
+        normalized.push(flag)
+        seen.add('dir')
+      }
+      continue
+    }
+
+    if (!seen.has(flag)) {
+      normalized.push(flag)
+      seen.add(flag)
+    }
+  }
+
+  if (!seen.has('dir')) {
+    normalized.unshift('dir')
+  }
+
+  if (!normalized.some(value => value === '-w' || value === '--wordlist')) {
+    normalized.push('-w', defaultWordlist)
+  }
+
+  return normalized
+}
+
+function getFlagValue(flags: string[], flagName: string): string | undefined {
+  const index = flags.indexOf(flagName)
+  if (index === -1) return undefined
+  return flags[index + 1]
+}
+
 // AI prompt interpretation
 export interface AICommandSuggestion {
   tool: string
@@ -1009,13 +1067,26 @@ export function parseAIResponse(aiResponse: string): AICommandSuggestion[] {
   const suggestions: AICommandSuggestion[] = []
 
   try {
+    const trimmed = aiResponse.trim()
+    const unwrapped = trimmed
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```$/, '')
+      .trim()
+
     // Try to parse as JSON first
-    const parsed = JSON.parse(aiResponse)
+    const parsed = JSON.parse(unwrapped)
     if (Array.isArray(parsed)) {
       return parsed.map(suggestion => ({
         ...suggestion,
         confidence: Math.min(Math.max(suggestion.confidence || 0.5, 0), 1)
       }))
+    }
+    if (parsed && typeof parsed === 'object') {
+      return [{
+        ...parsed,
+        confidence: Math.min(Math.max(parsed.confidence || 0.5, 0), 1)
+      }]
     }
   } catch {
     // If not JSON, try to extract tools from text
@@ -1047,7 +1118,7 @@ export function validateCommand(command: Command): { valid: boolean; errors: str
     CommandSchema.parse(command)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      errors.push(...error.errors.map(e => e.message))
+      errors.push(...error.issues.map(e => e.message))
     }
   }
 

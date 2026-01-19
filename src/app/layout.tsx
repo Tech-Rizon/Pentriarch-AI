@@ -45,7 +45,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`${interClass} ${jetbrainsMonoClass} dark`}>
-      <body className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 antialiased">
+      <body className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 antialiased">
         {chatKitEnabled && (
           <Script
             src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"

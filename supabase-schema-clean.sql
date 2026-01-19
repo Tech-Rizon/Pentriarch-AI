@@ -79,6 +79,79 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Projects table
+CREATE TABLE IF NOT EXISTS public.projects (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    owner_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Targets table
+CREATE TABLE IF NOT EXISTS public.targets (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
+    base_url TEXT NOT NULL,
+    host TEXT NOT NULL,
+    verified BOOLEAN DEFAULT FALSE,
+    active_scans_allowed BOOLEAN DEFAULT FALSE,
+    scope JSONB NOT NULL DEFAULT '{
+      "allowedPathPrefixes": ["/"],
+      "excludedPathPrefixes": [],
+      "maxRequestsPerMinute": 60,
+      "maxConcurrency": 2
+    }',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Target verification table
+CREATE TABLE IF NOT EXISTS public.target_verifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    target_id UUID REFERENCES public.targets(id) ON DELETE CASCADE NOT NULL,
+    method TEXT CHECK (method IN ('well_known', 'dns_txt', 'loa')) NOT NULL,
+    token TEXT NOT NULL,
+    status TEXT CHECK (status IN ('pending', 'verified', 'failed', 'expired')) DEFAULT 'pending',
+    verified_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Scan jobs table
+CREATE TABLE IF NOT EXISTS public.scan_jobs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    target_id UUID REFERENCES public.targets(id) ON DELETE CASCADE NOT NULL,
+    scan_type TEXT NOT NULL,
+    status TEXT CHECK (status IN ('queued', 'running', 'complete', 'failed', 'cancelled')) DEFAULT 'queued',
+    started_at TIMESTAMP WITH TIME ZONE,
+    ended_at TIMESTAMP WITH TIME ZONE,
+    artifacts JSONB DEFAULT '{}'::jsonb,
+    created_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Findings table
+CREATE TABLE IF NOT EXISTS public.findings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    scan_job_id UUID REFERENCES public.scan_jobs(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    severity TEXT CHECK (severity IN ('info', 'low', 'medium', 'high', 'critical')) NOT NULL,
+    confidence TEXT CHECK (confidence IN ('low', 'medium', 'high')) DEFAULT 'medium',
+    category TEXT,
+    description TEXT,
+    recommendation TEXT,
+    evidence_summary TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Evidence table
+CREATE TABLE IF NOT EXISTS public.evidence (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    finding_id UUID REFERENCES public.findings(id) ON DELETE CASCADE NOT NULL,
+    type TEXT NOT NULL,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
 -- Enable Row Level Security
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scans ENABLE ROW LEVEL SECURITY;
@@ -86,6 +159,12 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scan_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.targets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.target_verifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scan_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evidence ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for user_profiles
 CREATE POLICY "Users can view own profile" ON public.user_profiles
@@ -168,6 +247,154 @@ CREATE POLICY "Users can update own settings" ON public.user_settings
 CREATE POLICY "Users can insert own settings" ON public.user_settings
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- RLS Policies for projects
+CREATE POLICY "Users can view own projects" ON public.projects
+    FOR SELECT USING (auth.uid() = owner_id);
+
+CREATE POLICY "Users can insert own projects" ON public.projects
+    FOR INSERT WITH CHECK (auth.uid() = owner_id);
+
+CREATE POLICY "Users can update own projects" ON public.projects
+    FOR UPDATE USING (auth.uid() = owner_id);
+
+-- RLS Policies for targets
+CREATE POLICY "Users can view own targets" ON public.targets
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.projects
+            WHERE projects.id = targets.project_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own targets" ON public.targets
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.projects
+            WHERE projects.id = targets.project_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own targets" ON public.targets
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.projects
+            WHERE projects.id = targets.project_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+-- RLS Policies for target verifications
+CREATE POLICY "Users can view own target verifications" ON public.target_verifications
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.targets
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE targets.id = target_verifications.target_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own target verifications" ON public.target_verifications
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.targets
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE targets.id = target_verifications.target_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own target verifications" ON public.target_verifications
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.targets
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE targets.id = target_verifications.target_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+-- RLS Policies for scan_jobs
+CREATE POLICY "Users can view own scan jobs" ON public.scan_jobs
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.targets
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE targets.id = scan_jobs.target_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own scan jobs" ON public.scan_jobs
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.targets
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE targets.id = scan_jobs.target_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own scan jobs" ON public.scan_jobs
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.targets
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE targets.id = scan_jobs.target_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+-- RLS Policies for findings
+CREATE POLICY "Users can view own findings" ON public.findings
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.scan_jobs
+            JOIN public.targets ON targets.id = scan_jobs.target_id
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE scan_jobs.id = findings.scan_job_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own findings" ON public.findings
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.scan_jobs
+            JOIN public.targets ON targets.id = scan_jobs.target_id
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE scan_jobs.id = findings.scan_job_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+-- RLS Policies for evidence
+CREATE POLICY "Users can view own evidence" ON public.evidence
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.findings
+            JOIN public.scan_jobs ON scan_jobs.id = findings.scan_job_id
+            JOIN public.targets ON targets.id = scan_jobs.target_id
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE findings.id = evidence.finding_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own evidence" ON public.evidence
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.findings
+            JOIN public.scan_jobs ON scan_jobs.id = findings.scan_job_id
+            JOIN public.targets ON targets.id = scan_jobs.target_id
+            JOIN public.projects ON projects.id = targets.project_id
+            WHERE findings.id = evidence.finding_id
+            AND projects.owner_id = auth.uid()
+        )
+    );
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_scans_user_id ON public.scans(user_id);
 CREATE INDEX IF NOT EXISTS idx_scans_status ON public.scans(status);
@@ -177,6 +404,14 @@ CREATE INDEX IF NOT EXISTS idx_scan_logs_timestamp ON public.scan_logs(timestamp
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(read);
 CREATE INDEX IF NOT EXISTS idx_reports_scan_id ON public.reports(scan_id);
+CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON public.projects(owner_id);
+CREATE INDEX IF NOT EXISTS idx_targets_project_id ON public.targets(project_id);
+CREATE INDEX IF NOT EXISTS idx_targets_host ON public.targets(host);
+CREATE INDEX IF NOT EXISTS idx_target_verifications_target_id ON public.target_verifications(target_id);
+CREATE INDEX IF NOT EXISTS idx_scan_jobs_target_id ON public.scan_jobs(target_id);
+CREATE INDEX IF NOT EXISTS idx_scan_jobs_status ON public.scan_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_findings_scan_job_id ON public.findings(scan_job_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_finding_id ON public.evidence(finding_id);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION public.handle_updated_at()

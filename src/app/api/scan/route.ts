@@ -3,9 +3,42 @@ import { ensureUserProfileServer, getCurrentUserServer, insertScanServer, update
 import { mcpRouter, selectOptimalModel } from '@/lib/mcpRouter'
 import { runAgentWorkflow } from '@/lib/agentWorkflow'
 import { routeToolCommand, parseAIResponse, commandToToolString } from '@/lib/toolsRouter'
+import { buildScanPlan } from '@/lib/scanPlanner'
 import { dockerManager } from '@/lib/dockerManager'
+import { approveScanRequest } from '@/lib/policy/scanPolicy'
+import { buildScanCommand, getScanRunner } from '@/lib/scanRunners'
+import { requireEntitlement } from '@/lib/policy/entitlementMiddleware'
 
 export const runtime = "nodejs";
+
+const parseAllowedTargets = () =>
+  (process.env.ALLOWED_SCAN_TARGETS || '')
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean)
+
+const normalizeTargetHost = (target: string) => {
+  const trimmed = target.trim()
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`
+  try {
+    const url = new URL(withProtocol)
+    return url.hostname.toLowerCase()
+  } catch {
+    return trimmed.toLowerCase()
+  }
+}
+
+const isTargetAllowed = (host: string, allowed: string[]) => {
+  if (allowed.length === 0) return false
+  return allowed.some((entry) => {
+    if (entry.startsWith('*.')) {
+      const suffix = entry.slice(1)
+      return host.endsWith(suffix)
+    }
+    return host === entry
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get current user
@@ -16,7 +49,79 @@ export async function POST(request: NextRequest) {
 
 
     // Parse request body
-    const { prompt, target, preferredModel, userPlan = 'free' } = await request.json()
+    const { prompt, target, preferredModel, userPlan = 'free', authorizationConfirmed, targetId, scanType } = await request.json()
+
+    if (targetId && scanType) {
+      const runner = getScanRunner(scanType)
+      if (!runner) {
+        return NextResponse.json({ error: 'Unsupported scan type' }, { status: 400 })
+      }
+
+      const entitlementResult = await requireEntitlement({
+        userId: user.id,
+        targetId,
+        scanType
+      })
+
+      if (!entitlementResult.ok) {
+        return NextResponse.json(
+          { error: 'Scan not allowed', details: entitlementResult.reason },
+          { status: 403 }
+        )
+      }
+
+      const approval = approveScanRequest({
+        id: entitlementResult.target.id,
+        host: entitlementResult.target.host,
+        base_url: entitlementResult.target.base_url,
+        verified: entitlementResult.target.verified,
+        active_scans_allowed: entitlementResult.target.active_scans_allowed,
+        scope: entitlementResult.target.scope
+      }, runner)
+
+      if (!approval.approved) {
+        return NextResponse.json(
+          { error: 'Scan not approved', details: approval.reason },
+          { status: 403 }
+        )
+      }
+
+      await ensureUserProfileServer(user)
+      const scan = await insertScanServer({
+        user_id: user.id,
+        target: entitlementResult.target.base_url,
+        prompt: `scan_type:${scanType}`,
+        status: 'queued',
+        ai_model: 'policy-runner',
+        start_time: new Date().toISOString()
+      })
+
+      const { command, shellCommand, timeoutSeconds, tool } = buildScanCommand(
+        scanType,
+        entitlementResult.target.base_url,
+        entitlementResult.target.host
+      )
+
+      await updateScanStatusServer(scan.id, 'running', {
+        scan_type: scanType,
+        runner: runner.description,
+        scope: entitlementResult.target.scope,
+        entitlement_plan: entitlementResult.entitlement.plan
+      }, {
+        tool_used: tool,
+        command_executed: JSON.stringify(command)
+      })
+
+      executeCommandAsync(scan.id, shellCommand, timeoutSeconds, user.id)
+
+      return NextResponse.json({
+        success: true,
+        scanId: scan.id,
+        scanType,
+        command,
+        model: 'policy-runner'
+      })
+    }
 
     // Input validation
     // Validate target as domain, IP, or URL
@@ -29,13 +134,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid target format' }, { status: 400 });
     }
 
+    if (authorizationConfirmed !== true) {
+      return NextResponse.json(
+        { error: 'Authorization required', details: 'Confirm you own or have explicit permission to test this target.' },
+        { status: 403 }
+      )
+    }
+
+    const allowedTargets = parseAllowedTargets()
+    const targetHost = normalizeTargetHost(target)
+    if (!isTargetAllowed(targetHost, allowedTargets)) {
+      return NextResponse.json(
+        { error: 'Target not allowed', details: 'Target is not in the allowed list for scans.' },
+        { status: 403 }
+      )
+    }
+
     // Validate prompt length and content
     if (!prompt || typeof prompt !== 'string' || prompt.length > 500) {
       return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 });
     }
 
     // Validate preferredModel and userPlan
-    const allowedModels = ['gpt-4', 'gpt-4-mini', 'claude-3-sonnet', 'claude-3-haiku', 'deepseek-v2'];
+    const allowedModels = ['gpt-4o', 'gpt-4o-mini', 'claude-3-5-sonnet-20240620', 'claude-3-5-haiku-20241022', 'deepseek-chat'];
     if (preferredModel && !allowedModels.includes(preferredModel)) {
       return NextResponse.json({ error: 'Invalid model selection' }, { status: 400 });
     }
@@ -140,29 +261,30 @@ Target: "${target}"`
       const suggestion = suggestions[0] // Use first suggestion
 
       // Generate command based on AI suggestion
-      const command = routeToolCommand(
+      const plan = buildScanPlan(prompt, target, suggestion.tool)
+      const primaryCommand = routeToolCommand(
         suggestion.tool,
         suggestion.target,
         suggestion.flags
       )
-      const shellCommand = commandToToolString(command)
 
       // Update scan with AI recommendation
       await updateScanStatusServer(scan.id, 'running', {
         ai_model_used: modelId,
         ai_reasoning: suggestion.reasoning,
         tool_suggested: suggestion.tool,
-        command_generated: JSON.stringify(command),
+        command_generated: JSON.stringify(primaryCommand),
         risk_assessment: suggestion.risk_assessment,
         estimated_time: suggestion.estimated_time,
+        plan: plan,
         ai_fallback: aiFallbackUsed || undefined
       }, {
         tool_used: suggestion.tool,
-        command_executed: JSON.stringify(command)
+        command_executed: JSON.stringify(primaryCommand)
       })
 
-      // Execute command in background (don't await)
-      executeCommandAsync(scan.id, shellCommand, command.timeout, user.id)
+      // Execute multi-step plan in background (don't await)
+      executePlanAsync(scan.id, plan, user.id, target)
 
       return NextResponse.json({
         success: true,
@@ -175,7 +297,8 @@ Target: "${target}"`
           estimatedTime: suggestion.estimated_time,
           riskLevel: suggestion.risk_assessment
         },
-        command: command
+        command: primaryCommand,
+        plan
       })
 
     } catch (aiError) {
@@ -183,20 +306,20 @@ Target: "${target}"`
 
       // Fallback to basic tool selection
       const fallbackTool = selectFallbackTool(prompt)
-      const fallbackCommand = routeToolCommand(fallbackTool, target)
-      const fallbackShellCommand = commandToToolString(fallbackCommand)
+      const plan = buildScanPlan(prompt, target, fallbackTool)
 
       await updateScanStatusServer(scan.id, 'running', {
         ai_fallback: true,
         tool_suggested: fallbackTool,
-        command_generated: JSON.stringify(fallbackCommand)
+        command_generated: JSON.stringify(plan.steps.map(step => step.tool)),
+        plan
       }, {
         tool_used: fallbackTool,
-        command_executed: JSON.stringify(fallbackCommand)
+        command_executed: JSON.stringify(plan.steps.map(step => step.tool))
       })
 
-      // Execute fallback command
-      executeCommandAsync(scan.id, fallbackShellCommand, fallbackCommand.timeout, user.id)
+      // Execute fallback plan
+      executePlanAsync(scan.id, plan, user.id, target)
 
       return NextResponse.json({
         success: true,
@@ -209,7 +332,8 @@ Target: "${target}"`
           estimatedTime: 300,
           riskLevel: 'medium'
         },
-        command: fallbackCommand
+        command: plan.steps.map(step => step.tool),
+        plan
       })
     }
 
@@ -249,6 +373,58 @@ async function executeCommandAsync(scanId: string, command: string, timeoutSecon
       })
     }
 
+  } catch (error) {
+    console.error(`Command execution failed for scan ${scanId}:`, error)
+    await updateScanStatusServer(scanId, 'failed', {
+      execution_error: error instanceof Error ? error.message : String(error)
+    })
+  }
+}
+
+async function executePlanAsync(
+  scanId: string,
+  plan: { steps: Array<{ tool: string; flags?: string[]; label: string }> },
+  userId: string,
+  target: string
+) {
+  try {
+    for (let index = 0; index < plan.steps.length; index += 1) {
+      const step = plan.steps[index]
+      const stepIndex = index + 1
+      const command = routeToolCommand(step.tool, target, step.flags)
+      const shellCommand = commandToToolString(command)
+
+      await updateScanStatusServer(scanId, 'running', {
+        current_step: stepIndex,
+        total_steps: plan.steps.length,
+        step_label: step.label,
+        step_tool: step.tool
+      })
+
+      const result = await dockerManager.executeCommand(
+        shellCommand,
+        scanId,
+        (output) => {
+          console.log(`Scan ${scanId} output:`, output)
+        },
+        typeof command.timeout === 'number' ? command.timeout * 1000 : undefined,
+        userId
+      )
+
+      if (!result.success) {
+        await updateScanStatusServer(scanId, 'failed', {
+          execution_error: result.error,
+          execution_duration: result.duration,
+          failed_step: stepIndex
+        })
+        return
+      }
+    }
+
+    await updateScanStatusServer(scanId, 'completed', {
+      execution_result: 'multi-step',
+      execution_duration: 'multi-step'
+    })
   } catch (error) {
     console.error(`Command execution failed for scan ${scanId}:`, error)
     await updateScanStatusServer(scanId, 'failed', {

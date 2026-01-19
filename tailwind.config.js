@@ -9,6 +9,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      height: {
+        chat: "calc(100vh - 200px)",
+        "175": "43.75rem",
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -69,6 +73,11 @@ module.exports = {
       fontFamily: {
         sans: ["var(--font-inter)", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "monospace"],
+      },
+      backgroundColor: {
+        "dark-primary": "hsl(270 20% 12%)",
+        "dark-secondary": "hsl(270 25% 16%)",
+        "accent-green": "hsl(160 100% 40%)",
       },
     },
   },

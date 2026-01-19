@@ -7,12 +7,14 @@ import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Shield, Terminal, Activity, User, Settings, LogOut } from 'lucide-react'
+import { Shield, Terminal, Activity, FileText, User, Settings, LogOut, Globe } from 'lucide-react'
 import PromptConsole from '@/components/PromptConsole'
 import ChatKitConsole from '@/components/ChatKitConsole'
 import ScanDashboard from '@/components/ScanDashboard'
+import ReportsDashboard from '@/components/ReportsDashboard'
 import SecurityWorkspace from '@/components/SecurityWorkspace'
 import SettingsPage from '@/components/SettingsPage'
+import AssetsDashboard from '@/components/AssetsDashboard'
 import { getCurrentUserClient, signOut } from '@/lib/supabase'
 
 // ✅ Structurally typed interface
@@ -30,6 +32,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<AppUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('workspace')
+  const [useChatKit, setUseChatKit] = useState(chatKitEnabled)
   const router = useRouter()
 
   useEffect(() => {
@@ -138,7 +141,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-7xl mx-auto">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border border-slate-700 mb-6">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800/50 border border-slate-700 mb-6">
             <TabsTrigger
               value="workspace"
               className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
@@ -161,6 +164,20 @@ export default function Dashboard() {
               <span>Scan Dashboard</span>
             </TabsTrigger>
             <TabsTrigger
+              value="assets"
+              className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              <Globe className="h-4 w-4" />
+              <span>Assets</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="reports"
+              className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              <FileText className="h-4 w-4" />
+              <span>Reports</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="settings"
               className="flex items-center space-x-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
             >
@@ -174,11 +191,41 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="console" className="space-y-6">
-            {chatKitEnabled ? <ChatKitConsole /> : <PromptConsole />}
+            {chatKitEnabled && (
+              <div className="flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setUseChatKit(true)}
+                  className={`px-3 py-1 rounded-full text-sm border ${
+                    useChatKit ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-600 text-slate-300'
+                  }`}
+                >
+                  ChatKit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseChatKit(false)}
+                  className={`px-3 py-1 rounded-full text-sm border ${
+                    !useChatKit ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-600 text-slate-300'
+                  }`}
+                >
+                  Classic
+                </button>
+              </div>
+            )}
+            {(chatKitEnabled && useChatKit) ? <ChatKitConsole /> : <PromptConsole />}
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6">
             <ScanDashboard />
+          </TabsContent>
+
+          <TabsContent value="assets" className="space-y-6">
+            <AssetsDashboard />
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-6">
+            <ReportsDashboard />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseServerClient } from '@/lib/supabase'
 import { dockerManager } from '@/lib/dockerManager'
 import { requireAdmin, getErrorMessage } from '@/lib/auth-helpers'
 
@@ -17,10 +17,11 @@ type Scan = {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAdmin()
+    await requireAdmin(request)
 
     // Get user statistics
-    const { data: userStats } = await supabase
+    const supabaseServer = getSupabaseServerClient()
+    const { data: userStats } = await supabaseServer
       .from('profiles')
       .select(`
         id,
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     }).length || 0
 
     // Get scan statistics
-    const { data: scanStats } = await supabase
+    const { data: scanStats } = await supabaseServer
       .from('scans')
       .select('status, created_at')
 
@@ -70,10 +71,14 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Admin stats API error:', error)
+    const message = getErrorMessage(error)
+    const status = message === 'Admin access required' ? 403 : 500
+    if (status === 500) {
+      console.error('Admin stats API error:', error)
+    }
     return NextResponse.json({
-      error: 'Failed to retrieve system statistics',
-      details: getErrorMessage(error)
-    }, { status: 500 })
+      error: status === 403 ? 'Admin access required' : 'Failed to retrieve system statistics',
+      details: message
+    }, { status })
   }
 }

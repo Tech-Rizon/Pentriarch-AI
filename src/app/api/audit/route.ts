@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer } from '@/lib/supabase'
-import { supabase } from '@/lib/supabase'
+import { getCurrentUserServer, getSupabaseServerClient } from '@/lib/supabase'
 
 interface AuditScanData {
   id: string
@@ -39,7 +38,8 @@ export async function GET(request: NextRequest) {
     const offset = Number.parseInt(searchParams.get('offset') || '0')
 
     // Build query
-    let query = supabase
+    const supabaseServer = getSupabaseServerClient()
+    let query = supabaseServer
       .from('scans')
       .select(`
         id,
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination
-    let countQuery = supabase
+    let countQuery = supabaseServer
       .from('scans')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     // If scanId provided, log to scan_logs table
     if (scanId) {
-      const { error } = await supabase
+      const { error } = await supabaseServer
         .from('scan_logs')
         .insert([auditEvent])
 
@@ -266,7 +266,7 @@ export async function PUT(request: NextRequest) {
     const { format = 'json', includeSystemLogs = false } = await request.json()
 
     // Get comprehensive audit data
-    const { data: auditData, error } = await supabase
+    const { data: auditData, error } = await supabaseServer
       .from('scans')
       .select(`
         *,

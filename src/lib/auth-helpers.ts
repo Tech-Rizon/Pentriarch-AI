@@ -1,5 +1,6 @@
 // Helper functions for user authentication and metadata access
-import { getCurrentUserClient } from './supabase'
+import { type NextRequest } from 'next/server'
+import { getCurrentUserClient, getCurrentUserServer } from './supabase'
 
 export interface ExtendedUser {
   id: string
@@ -15,10 +16,20 @@ export interface ExtendedUser {
 
 export async function getSafeUser(): Promise<ExtendedUser | null> {
   try {
-  const user = await getCurrentUserClient()
+    const user = await getCurrentUserClient()
     return user as ExtendedUser
   } catch (error) {
     console.error('Error getting user:', error)
+    return null
+  }
+}
+
+export async function getSafeUserServer(request?: NextRequest): Promise<ExtendedUser | null> {
+  try {
+    const user = await getCurrentUserServer(request)
+    return user as ExtendedUser
+  } catch (error) {
+    console.error('Error getting server user:', error)
     return null
   }
 }
@@ -38,11 +49,11 @@ export function getUserOrganization(user: any): string {
 export function isAdmin(user: any): boolean {
   const role = getUserRole(user)
   const email = user?.email || ''
-  return role === 'admin' || email.includes('admin') || email.includes('@pentriarch.ai')
+  return role === 'admin' || role === 'super_admin' || email.includes('admin') || email.includes('@pentriarch.ai')
 }
 
-export async function requireAdmin() {
-  const user = await getSafeUser()
+export async function requireAdmin(request?: NextRequest) {
+  const user = request ? await getSafeUserServer(request) : await getSafeUser()
   if (!user || !isAdmin(user)) {
     throw new Error('Admin access required')
   }

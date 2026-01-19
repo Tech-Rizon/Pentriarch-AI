@@ -21,7 +21,7 @@ import {
   BarChart3,
   ExternalLink
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserClient } from '@/lib/supabase'
 
 interface Finding {
   id: string
@@ -77,7 +77,7 @@ export default function ReportDetail({ scanId, onClose }: ReportDetailProps) {
 
   const loadUser = async () => {
     try {
-      const currentUser = await getCurrentUser()
+      const currentUser = await getCurrentUserClient()
       setUser(currentUser)
     } catch (error) {
       console.error('Failed to load user:', error)

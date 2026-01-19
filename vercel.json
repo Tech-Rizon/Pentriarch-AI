@@ -1,15 +1,15 @@
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "pnpm install && pnpm build",
   "framework": "nextjs",
-  "installCommand": "bun install",
-  "devCommand": "bun run dev",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "devCommand": "pnpm dev",
+  "nodeVersion": "20.x",
   "regions": ["iad1", "sfo1"],
   "functions": {
-    "pages/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
+    "app/api/**": {
+      "runtime": "nodejs20.x",
+      "memory": 1024,
+      "maxDuration": 60
     }
   },
   "headers": [
@@ -60,17 +60,16 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
-    "SUPABASE_SERVICE_KEY": "@supabase_service_key",
+    "NEXT_PUBLIC_CHATKIT_ENABLED": "@next_public_chatkit_enabled",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
     "OPENAI_API_KEY": "@openai_api_key",
     "ANTHROPIC_API_KEY": "@anthropic_api_key",
     "DEEPSEEK_API_KEY": "@deepseek_api_key",
-    "JWT_SECRET": "@jwt_secret",
-    "ENCRYPTION_KEY": "@encryption_key"
-  },
-  "build": {
-    "env": {
-      "SKIP_TYPE_CHECK": "true",
-      "SKIP_LINT": "true"
-    }
+    "LLAMA_STACK_API_KEY": "@llama_stack_api_key",
+    "AGENT_MODEL": "@agent_model",
+    "AGENT_WORKFLOW_ENABLED": "@agent_workflow_enabled",
+    "ALLOWED_SCAN_TARGETS": "@allowed_scan_targets",
+    "REAL_EXECUTION": "@real_execution",
+    "CHATKIT_WORKFLOW_ID": "@chatkit_workflow_id"
   }
 }

@@ -207,7 +207,8 @@ export default function PromptConsole() {
         body: JSON.stringify({
           prompt: input,
           target: target,
-          userPlan: user?.plan || 'free'
+          userPlan: user?.plan || 'free',
+          authorizationConfirmed: true
         })
       })
 
@@ -323,7 +324,7 @@ ${output}
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -400,7 +401,7 @@ ${output}
                   <div className={`flex items-start space-x-3 ${
                     message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                   }`}>
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                       message.type === 'user'
                         ? 'bg-emerald-600'
                         : message.type === 'ai'

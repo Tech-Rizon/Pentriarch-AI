@@ -20,7 +20,7 @@ This guide covers the complete deployment setup for Pentriarch AI, including CI/
 1. **Create Vercel Account**: Sign up at [vercel.com](https://vercel.com)
 2. **Install Vercel CLI**:
    ```bash
-   bun add -g vercel@latest
+   npm install -g vercel@latest
    ```
 3. **Login to Vercel**:
    ```bash
@@ -148,10 +148,10 @@ For critical hotfixes, use the manual deployment workflow:
 
 ```bash
 # Install dependencies
-bun install
+pnpm install
 
 # Build locally
-bun run build
+pnpm build
 
 # Test with Vercel CLI
 vercel dev
@@ -172,8 +172,8 @@ vercel --prod
 **Problem**: TypeScript or ESLint errors during deployment
 ```bash
 # Solution: Run locally first
-bun run build
-bun run lint
+pnpm build
+pnpm lint
 ```
 
 **Problem**: Missing environment variables
@@ -205,16 +205,17 @@ vercel link
 1. **Bundle Analysis**:
    ```bash
    # Analyze bundle size
-   bunx @next/bundle-analyzer
+   pnpm add -D @next/bundle-analyzer
+   # Then add to next.config.js with withBundleAnalyzer wrapper
    ```
 
 2. **Environment-specific builds**:
    ```bash
    # Development build
-   NODE_ENV=development bun run build
+   NODE_ENV=development pnpm build
 
    # Production build
-   NODE_ENV=production bun run build
+   NODE_ENV=production pnpm build
    ```
 
 3. **Cache optimization**:
@@ -292,10 +293,10 @@ vercel logs              # View deployment logs
 vercel env ls            # List environment variables
 
 # Development commands
-bun run dev              # Start development server
-bun run build           # Build for production
-bun run lint            # Run code linting
-bun run format          # Format code
+pnpm dev              # Start development server
+pnpm build           # Build for production
+pnpm lint            # Run code linting
+pnpm format          # Format code
 
 # GitHub Actions
 git push origin main     # Trigger production deployment

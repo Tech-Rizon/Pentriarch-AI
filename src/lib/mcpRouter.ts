@@ -25,28 +25,28 @@ interface ModelSelection {
 
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gpt-4',
-    name: 'GPT-4',
+    id: 'gpt-4o',
+    name: 'GPT-4o',
     provider: 'openai',
-    contextWindow: 8192,
-    costPer1kTokens: 0.03,
+    contextWindow: 128000,
+    costPer1kTokens: 0.01,
     capabilities: ['reasoning', 'analysis', 'code', 'security'],
     available: true,
     performance: { latency: 2.5, reliability: 98, accuracy: 95 }
   },
   {
-    id: 'gpt-4-mini',
-    name: 'GPT-4 Mini',
+    id: 'gpt-4o-mini',
+    name: 'GPT-4o Mini',
     provider: 'openai',
-    contextWindow: 16384,
+    contextWindow: 128000,
     costPer1kTokens: 0.0015,
     capabilities: ['reasoning', 'analysis', 'quick_tasks'],
     available: true,
     performance: { latency: 1.2, reliability: 99, accuracy: 90 }
   },
   {
-    id: 'claude-3-sonnet',
-    name: 'Claude 3 Sonnet',
+    id: 'claude-3-5-sonnet-20240620',
+    name: 'Claude 3.5 Sonnet',
     provider: 'anthropic',
     contextWindow: 200000,
     costPer1kTokens: 0.015,
@@ -55,8 +55,8 @@ export const AI_MODELS: AIModel[] = [
     performance: { latency: 1.8, reliability: 99, accuracy: 96 }
   },
   {
-    id: 'claude-3-haiku',
-    name: 'Claude 3 Haiku',
+    id: 'claude-3-5-haiku-20241022',
+    name: 'Claude 3.5 Haiku',
     provider: 'anthropic',
     contextWindow: 200000,
     costPer1kTokens: 0.00025,
@@ -65,8 +65,8 @@ export const AI_MODELS: AIModel[] = [
     performance: { latency: 0.8, reliability: 99, accuracy: 88 }
   },
   {
-    id: 'deepseek-v2',
-    name: 'DeepSeek V2',
+    id: 'deepseek-chat',
+    name: 'DeepSeek Chat',
     provider: 'deepseek',
     contextWindow: 128000,
     costPer1kTokens: 0.001,
@@ -78,7 +78,7 @@ export const AI_MODELS: AIModel[] = [
 
 export class MCPRouter {
   private apiKeys: Record<string, string> = {}
-  private fallbackOrder: string[] = ['gpt-4-mini', 'claude-3-haiku', 'deepseek-v2']
+  private fallbackOrder: string[] = ['gpt-4o-mini', 'claude-3-5-haiku-20241022', 'deepseek-chat']
 
   constructor() {
     this.loadApiKeys()
@@ -105,10 +105,10 @@ export class MCPRouter {
 
     if (userPlan === 'free') {
       availableModels = availableModels.filter(model =>
-        ['gpt-4-mini', 'claude-3-haiku'].includes(model.id)
+        ['gpt-4o-mini', 'claude-3-5-haiku-20241022'].includes(model.id)
       )
     } else if (userPlan === 'pro') {
-      availableModels = availableModels.filter(model => model.id !== 'deepseek-v2')
+      availableModels = availableModels.filter(model => model.id !== 'deepseek-chat')
     }
 
     // If preferred model is available and allowed, use it
@@ -152,32 +152,44 @@ export class MCPRouter {
     modelId?: string,
     systemPrompt?: string
   ): Promise<{ response: string; model: string; tokens: number }> {
-    const model = AI_MODELS.find(m => m.id === modelId) || AI_MODELS[0]
+    this.loadApiKeys()
 
-    try {
-      const result = await this.callModel(model, prompt, systemPrompt)
-      return result
-    } catch (error) {
-      console.error(`Model ${model.id} failed:`, (error instanceof Error ? error.message : String(error)))
+    const candidates: string[] = []
+    if (modelId) {
+      candidates.push(modelId)
+    }
+    for (const fallbackId of this.fallbackOrder) {
+      if (!candidates.includes(fallbackId)) {
+        candidates.push(fallbackId)
+      }
+    }
 
-      // Try fallback models
-      for (const fallbackId of this.fallbackOrder) {
-        if (fallbackId === modelId) continue
+    for (const candidateId of candidates) {
+      const candidate = AI_MODELS.find(m => m.id === candidateId)
+      if (!candidate?.available) continue
 
-        const fallbackModel = AI_MODELS.find(m => m.id === fallbackId)
-        if (!fallbackModel?.available) continue
-
-        try {
-          console.log(`Falling back to ${fallbackModel.name}`)
-          const result = await this.callModel(fallbackModel, prompt, systemPrompt)
-          return { ...result, model: `${result.model} (fallback)` }
-        } catch (fallbackError) {
-          console.error(`Fallback ${fallbackModel.id} failed:`, (fallbackError instanceof Error ? fallbackError.message : String(fallbackError)))
-        }
+      const apiKey = this.apiKeys[candidate.provider]
+      if (!apiKey) {
+        console.warn(`Skipping ${candidate.id}: missing API key for ${candidate.provider}`)
+        continue
       }
 
-      throw new Error('All AI models unavailable')
+      try {
+        const result = await this.callModel(candidate, prompt, systemPrompt)
+        if (candidateId !== modelId && modelId) {
+          return { ...result, model: `${result.model} (fallback)` }
+        }
+        return result
+      } catch (error) {
+        console.error(
+          `Model ${candidate.id} failed:`,
+          (error instanceof Error ? error.message : String(error))
+        )
+        continue
+      }
     }
+
+    throw new Error('All AI models unavailable')
   }
 
   /**
@@ -287,7 +299,7 @@ export class MCPRouter {
     messages.push({ role: 'user', content: prompt })
 
     const response = await deepseek.chat.completions.create({
-      model: 'deepseek-coder',
+      model: model.id,
       messages,
       max_tokens: 2000,
       temperature: 0.1

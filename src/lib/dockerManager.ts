@@ -1,6 +1,7 @@
 // src/lib/dockerManager.ts
 import { EventEmitter } from "node:events";
-import { spawn, spawnSync } from "node:child_process";
+import { PassThrough } from "node:stream";
+import Docker from "dockerode";
 import { insertScanLogServer, updateScanStatusServer } from "./supabase";
 import { WebSocketBroadcaster } from "./websocket";
 import { TOOL_IMAGES } from "./toolImages";
@@ -32,20 +33,8 @@ interface ScanExecution {
 
 const REAL = process.env.REAL_EXECUTION !== "false";
 const isWin = typeof process !== "undefined" && process.platform === "win32";
-const DOCKER = isWin ? "docker.exe" : "docker";
 
-function detectTool(command: string): keyof typeof TOOL_IMAGES | null {
-  const c = command.trim().toLowerCase();
-  if (c.startsWith("nmap")) return "nmap";
-  if (c.startsWith("nikto")) return "nikto";
-  if (c.startsWith("sqlmap")) return "sqlmap";
-  if (c.startsWith("gobuster")) return "gobuster";
-  // if (c.startsWith("nuclei")) return "nuclei";
-  // if (c.startsWith("httpx")) return "httpx";
-  // if (c.startsWith("subfinder")) return "subfinder";
-  // if (c.startsWith("sslscan")) return "sslscan";
-  return null;
-}
+const DEFAULT_IMAGE = process.env.KALI_CONTAINER_IMAGE || "pentriarch/kali-scanner:latest";
 
 /** Very light splitter for args. Assumes e.g. "nmap -sV -T4 target" */
 function tokenize(cmd: string): string[] {
@@ -55,10 +44,12 @@ function tokenize(cmd: string): string[] {
 class DockerManager extends EventEmitter {
   private runningScans: Map<string, ScanExecution> = new Map();
   private broadcaster: WebSocketBroadcaster;
+  private dockerClient: Docker;
 
   constructor() {
     super();
     this.broadcaster = WebSocketBroadcaster.getInstance();
+    this.dockerClient = this.createDockerClient();
     console.log("Docker Manager initialized (REAL execution only; simulations removed).");
     if (!REAL) {
       // Fail fast so we don't accidentally proceed without real execution.
@@ -66,6 +57,51 @@ class DockerManager extends EventEmitter {
         "REAL_EXECUTION is not 'true'. Set REAL_EXECUTION=true in your environment. Simulations are disabled."
       );
     }
+  }
+
+  private createDockerClient(): Docker {
+    const dockerHost = process.env.DOCKER_HOST || "";
+    if (dockerHost.startsWith("unix://")) {
+      return new Docker({ socketPath: dockerHost.replace("unix://", "") });
+    }
+    if (dockerHost.startsWith("npipe://")) {
+      return new Docker({ socketPath: dockerHost.replace("npipe://", "") });
+    }
+    if (dockerHost.startsWith("tcp://")) {
+      const url = new URL(dockerHost.replace("tcp://", "http://"));
+      return new Docker({
+        host: url.hostname,
+        port: Number.parseInt(url.port || "2375", 10),
+        protocol: url.protocol.replace(":", "")
+      });
+    }
+    return new Docker();
+  }
+
+  private async ensureImage(image: string): Promise<void> {
+    try {
+      await this.dockerClient.getImage(image).inspect();
+      return;
+    } catch {
+      // Pull image if missing
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      this.dockerClient.pull(image, (error, stream) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (!stream) {
+          reject(new Error("Docker pull stream unavailable"));
+          return;
+        }
+        this.dockerClient.modem.followProgress(stream, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    });
   }
 
   /** Public entry used by your API routes */
@@ -89,7 +125,7 @@ class DockerManager extends EventEmitter {
       });
       throw new Error(msg);
     }
-    return this.realExecution(scanId, command, userId);
+    return this.realExecution(scanId, command, userId, timeoutMs);
   }
 
   /** REAL execution path: spawn docker and stream logs */
@@ -99,40 +135,29 @@ class DockerManager extends EventEmitter {
     userId: string,
     timeoutMs?: number
   ): Promise<{ success: boolean; output?: string; error?: string; containerId?: string }> {
-    const tool = detectTool(command);
-    if (!tool || !TOOL_IMAGES[tool]) {
-      throw new Error(
-        "Unsupported command. Allowed tools: nmap/nikto/sqlmap/gobuster (+ optional nuclei/httpx/subfinder/sslscan)."
-      );
+    const tokens = tokenize(command);
+    if (tokens.length === 0) {
+      throw new Error("Command is empty.");
     }
-
-    const tokens = tokenize(command); // e.g. ["nmap", "-sV", "-T4", "target"...]
-    const meta = TOOL_IMAGES[tool];
+    const meta = TOOL_IMAGES[tokens[0] as keyof typeof TOOL_IMAGES] || {
+      image: DEFAULT_IMAGE,
+      baseArgs: [] as string[]
+    };
 
     // If you later add flag normalization, do it here (e.g., for nmap on Windows/docker).
     // const finalArgs = tool === "nmap" ? normalizeNmapFlags(tokens.slice(1)) : tokens.slice(1);
     const finalArgs = tokens.slice(1);
 
-    const dockerArgs: string[] = [
-      "run",
-      "--rm",
-      // modest limits; adjust as needed
-      "--cpus=0.5",
-      "--memory=512m",
-      meta.image,
-      ...meta.baseArgs,   // includes the tool name (e.g., "nmap")
-      ...finalArgs,       // user flags + target
-    ];
+    await this.ensureImage(meta.image);
 
-    const containerId = `real-${scanId}-${Date.now()}`;
     const started = new Date();
-    const execution: ScanExecution = {
-      containerId,
-      startTime: started,
-      killed: false,
-      real: true,
-      image: meta.image,
-    };
+      const execution: ScanExecution = {
+        containerId: "",
+        startTime: started,
+        killed: false,
+        real: true,
+        image: meta.image,
+      };
     this.runningScans.set(scanId, execution);
 
     await updateScanStatusServer(scanId, "running");
@@ -154,24 +179,36 @@ class DockerManager extends EventEmitter {
     });
 
     const begin = Date.now();
-    const child = spawn(DOCKER, dockerArgs, { stdio: ["ignore", "pipe", "pipe"] });
-
     let out = "";
     let err = "";
-    let spawnError: Error | null = null;
 
     const killAfterMs = typeof timeoutMs === "number" && timeoutMs > 0 ? timeoutMs : 10 * 60 * 1000;
 
-    // Hard timeout (per tool timeout when provided).
-    execution.timeout = setTimeout(() => {
-      try {
-        execution.killed = true;
-        child.kill("SIGKILL");
-      } catch {}
-    }, killAfterMs);
+    const hostConfig: Docker.ContainerCreateOptions["HostConfig"] = {
+      AutoRemove: true,
+    };
+    if (!isWin) {
+      hostConfig.NanoCpus = 0.5 * 1e9;
+      hostConfig.Memory = 512 * 1024 * 1024;
+    }
 
-    child.stdout.on("data", (d) => {
-      const text = d.toString();
+    const container = await this.dockerClient.createContainer({
+      Image: meta.image,
+      Cmd: [...meta.baseArgs, ...finalArgs],
+      Tty: false,
+      AttachStdout: true,
+      AttachStderr: true,
+      HostConfig: hostConfig
+    });
+
+    execution.containerId = container.id;
+
+    const attachStream = await container.attach({ stream: true, stdout: true, stderr: true });
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    this.dockerClient.modem.demuxStream(attachStream, stdout, stderr);
+
+    const handleStdout = (text: string) => {
       out += text;
       insertScanLogServer({
         scan_id: scanId,
@@ -187,10 +224,9 @@ class DockerManager extends EventEmitter {
         currentStep: "Streaming output",
         output: text,
       });
-    });
+    };
 
-    child.stderr.on("data", (d) => {
-      const text = d.toString();
+    const handleStderr = (text: string) => {
       err += text;
       insertScanLogServer({
         scan_id: scanId,
@@ -206,51 +242,30 @@ class DockerManager extends EventEmitter {
         currentStep: "Processing stderr",
         output: text,
       });
-    });
+    };
 
-    child.on("error", async (error) => {
-      spawnError = error;
-      const message = `Docker execution failed: ${error.message}`;
-      await updateScanStatusServer(scanId, "failed", {
-        execution_error: message,
-        execution_duration: Date.now() - begin,
-        direct_execution: true,
-      });
-      await insertScanLogServer({
-        scan_id: scanId,
-        timestamp: new Date().toISOString(),
-        level: "error",
-        message,
-        raw_output: error.message
-      });
-      this.broadcaster.broadcastScanError(scanId, userId, {
-        message,
-        details: { error: error.message },
-      });
-      this.broadcaster.broadcastContainerStatus(scanId, userId, {
-        scanId,
-        status: "error",
-        uptime: `${Math.round((Date.now() - begin) / 1000)}s`,
-        memoryUsage: "N/A",
-        cpuUsage: "N/A",
-      });
-      this.runningScans.delete(scanId);
-    });
+    stdout.on("data", (d) => handleStdout(d.toString()));
+    stderr.on("data", (d) => handleStderr(d.toString()));
 
-    const done = await new Promise<{ code: number | null }>((resolve) =>
-      child.on("close", (code) => resolve({ code }))
-    );
+    execution.timeout = setTimeout(async () => {
+      try {
+        execution.killed = true;
+        await container.stop({ t: 0 });
+        await container.remove({ force: true });
+      } catch {}
+    }, killAfterMs);
+
+    await container.start();
+    const done = await container.wait();
 
     if (execution.timeout) clearTimeout(execution.timeout);
     const durationMs = Date.now() - begin;
+    const exitCode = done?.StatusCode ?? 1;
 
-    if (spawnError) {
-      return { success: false, output: out, error: spawnError.message, containerId };
-    }
-
-    if (done.code === 0 && !execution.killed) {
+    if (exitCode === 0 && !execution.killed) {
+      const executedTool = tokens[0] || "unknown";
       await updateScanStatusServer(scanId, "completed", {
-        execution_result: { tool, image: meta.image },
+        execution_result: { tool: executedTool, image: meta.image },
         output_length: out.length,
         execution_duration: durationMs,
         direct_execution: true,
@@ -279,7 +294,7 @@ class DockerManager extends EventEmitter {
 
       this.runningScans.delete(scanId);
       generateDetailedReportForScan(scanId).catch(console.error);
-      return { success: true, output: out, containerId };
+      return { success: true, output: out, containerId: execution.containerId };
     }
 
     // Failed or killed
@@ -309,7 +324,7 @@ class DockerManager extends EventEmitter {
     });
 
     this.runningScans.delete(scanId);
-    return { success: false, output: out, error: err || "Scan failed", containerId };
+    return { success: false, output: out, error: err || "Scan failed", containerId: execution.containerId };
   }
 
   async killScan(scanId: string): Promise<boolean> {
@@ -319,6 +334,15 @@ class DockerManager extends EventEmitter {
     try {
       execution.killed = true;
       if (execution.timeout) clearTimeout(execution.timeout);
+      if (execution.containerId) {
+        try {
+          const container = this.dockerClient.getContainer(execution.containerId);
+          await container.stop({ t: 0 });
+          await container.remove({ force: true });
+        } catch {
+          // Best-effort cleanup if the container already exited.
+        }
+      }
       await updateScanStatusServer(scanId, "cancelled");
       this.runningScans.delete(scanId);
       console.log(`Killed REAL scan ${scanId}`);
@@ -364,16 +388,16 @@ class DockerManager extends EventEmitter {
     const image = process.env.KALI_CONTAINER_IMAGE || TOOL_IMAGES.nmap.image;
 
     try {
-      const dockerVersion = spawnSync(DOCKER, ["--version"], { encoding: "utf-8" });
-      dockerOk = dockerVersion.status === 0;
+      await this.dockerClient.ping();
+      dockerOk = true;
     } catch {
       dockerOk = false;
     }
 
     if (dockerOk) {
       try {
-        const imageCheck = spawnSync(DOCKER, ["images", "-q", image], { encoding: "utf-8" });
-        imageOk = imageCheck.status === 0 && !!imageCheck.stdout?.toString().trim();
+        await this.dockerClient.getImage(image).inspect();
+        imageOk = true;
       } catch {
         imageOk = false;
       }
