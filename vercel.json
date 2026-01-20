@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile",
   "devCommand": "pnpm dev",
-  "regions": ["iad1", "sfo1"],
+  "regions": ["iad1"],
   "functions": {
     "app/api/**": {
       "runtime": "nodejs20.x",
