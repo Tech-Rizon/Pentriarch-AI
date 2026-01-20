@@ -15,6 +15,9 @@ export async function GET(
 
     // Get scan details
     const scan = await getScanByIdServer(scanId)
+    if (!scan) {
+      return NextResponse.json({ error: 'Scan not found' }, { status: 404 })
+    }
 
     // Verify scan belongs to user
     if (scan.user_id !== user.id) {

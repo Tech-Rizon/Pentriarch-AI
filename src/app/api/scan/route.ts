@@ -9,6 +9,9 @@ import { approveScanRequest } from '@/lib/policy/scanPolicy'
 import { buildScanCommand, getScanRunner } from '@/lib/scanRunners'
 import { requireEntitlement } from '@/lib/policy/entitlementMiddleware'
 
+// Mark as dynamic to skip build-time generation
+export const dynamic = 'force-dynamic'
+
 export const runtime = "nodejs";
 
 const parseAllowedTargets = () =>

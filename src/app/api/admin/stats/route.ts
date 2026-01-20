@@ -3,6 +3,9 @@ import { getSupabaseServerClient } from '@/lib/supabase'
 import { dockerManager } from '@/lib/dockerManager'
 import { requireAdmin, getErrorMessage } from '@/lib/auth-helpers'
 
+// Mark as dynamic to skip build-time generation
+export const dynamic = 'force-dynamic'
+
 type UserProfile = {
   id: string
   last_sign_in_at: string | null
