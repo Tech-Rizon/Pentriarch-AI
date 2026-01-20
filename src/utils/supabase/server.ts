@@ -38,7 +38,7 @@ export const createClientWithRequest = (request: NextRequest) => {
       getAll() {
         return request.cookies.getAll()
       },
-      setAll(cookiesToSet) {
+      setAll(_cookiesToSet) {
         // Handle cookies in middleware instead
       },
     },

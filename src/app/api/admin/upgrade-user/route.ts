@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin/Pro/Enterprise access required' }, { status: 403 });
     }
 
-    let body;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch (e) {

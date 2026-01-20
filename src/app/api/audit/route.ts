@@ -320,12 +320,12 @@ export async function PUT(request: NextRequest) {
       let csv = 'Timestamp,Action,User,Target,Tool,Status,Risk_Level,Duration,Details\n'
 
       if (auditData) {
-        for (const scan of auditData as any[]) {
+        for (const scan of auditData as Array<Record<string, unknown>>) {
           const duration = scan.end_time && scan.start_time
-            ? Math.round((new Date(scan.end_time).getTime() - new Date(scan.start_time).getTime()) / 1000)
+            ? Math.round((new Date(scan.end_time as string).getTime() - new Date(scan.start_time as string).getTime()) / 1000)
             : 'N/A'
 
-          csv += `${scan.created_at},scan,${user.email},${scan.target},${scan.tool_used || 'N/A'},${scan.status},${scan.metadata?.risk_assessment || 'unknown'},${duration},"${scan.prompt?.replace(/"/g, '""') || 'N/A'}"\n`
+          csv += `${scan.created_at},scan,${user.email},${scan.target},${scan.tool_used || 'N/A'},${scan.status},${(scan.metadata as Record<string, unknown>)?.risk_assessment || 'unknown'},${duration},"${(scan.prompt as string)?.replace(/"/g, '""') || 'N/A'}"\n`
         }
       }
 
