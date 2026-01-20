@@ -3,6 +3,9 @@ import { getCurrentUserServer } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import { AI_MODELS } from '@/lib/mcpRouter'
 
+// Mark as dynamic to skip build-time generation
+export const dynamic = 'force-dynamic'
+
 interface UserWithMetadata {
   id: string;
   email: string;

@@ -3,6 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getCurrentUserServer, getScanByIdServer, getScanLogsServer } from '@/lib/supabase'
 import { aiAnalysisEngine } from '@/lib/aiAnalysisEngine'
 
+// Mark as dynamic to skip build-time generation
+export const dynamic = 'force-dynamic'
+
 interface AnalysisRequest {
   scanId: string
   context?: {
