@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUserServer, getLatestPendingVerificationServer, getProjectByIdServer, getTargetByIdServer, markTargetVerifiedServer, updateTargetVerificationStatusServer } from "@/lib/supabase"
 
+export const dynamic = 'force-dynamic'
 export const runtime = "nodejs"
 
 const fetchWithTimeout = async (url: string, timeoutMs: number) => {

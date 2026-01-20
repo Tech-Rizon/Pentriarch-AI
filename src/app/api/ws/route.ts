@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // Note: WebSocket functionality is temporarily disabled in Next.js App Router
 // The application will automatically fall back to polling for real-time updates
 

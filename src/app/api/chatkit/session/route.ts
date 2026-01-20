@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUserServer } from "@/lib/supabase"
 
+export const dynamic = 'force-dynamic'
+
 const CHATKIT_ENDPOINT = "https://api.openai.com/v1/chatkit/sessions"
 
 export async function POST(request: NextRequest) {

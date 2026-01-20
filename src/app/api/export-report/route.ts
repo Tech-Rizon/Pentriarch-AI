@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getCurrentUserServer, getReportByScanIdServer, getScanByIdServer, getScanLogsServer } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 interface ReportFinding {
   title: string
   description: string

@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getCurrentUserServer, getScanByIdServer, getReportByScanIdServer } from '@/lib/supabase'
 import { generateDetailedReport } from '@/lib/reporting'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

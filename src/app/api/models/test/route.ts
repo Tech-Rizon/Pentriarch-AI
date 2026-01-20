@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getErrorMessage } from '@/lib/auth-helpers'
 
+export const dynamic = 'force-dynamic'
+
 interface ModelTest {
   id: string
   model_id: string

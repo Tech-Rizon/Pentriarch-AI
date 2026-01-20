@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getCurrentUserServer, updateScanStatusServer } from '@/lib/supabase'
 import { dockerManager } from '@/lib/dockerManager'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUserServer(request)

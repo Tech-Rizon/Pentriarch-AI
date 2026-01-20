@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createTargetVerificationServer, getCurrentUserServer, getProjectByIdServer, getTargetByIdServer } from "@/lib/supabase"
 import { randomUUID } from "node:crypto"
 
+export const dynamic = 'force-dynamic'
 export const runtime = "nodejs"
 
 export async function POST(_request: Request, { params }: { params: { id: string } }) {

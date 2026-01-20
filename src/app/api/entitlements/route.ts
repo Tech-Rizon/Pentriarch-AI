@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getCurrentUserServer } from "@/lib/supabase"
 import { getEntitlementForUser } from "@/lib/policy/entitlementMiddleware"
 
+export const dynamic = 'force-dynamic'
 export const runtime = "nodejs"
 
 export async function GET() {

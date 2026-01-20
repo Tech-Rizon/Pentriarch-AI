@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { createTargetServer, ensureDefaultProjectServer, getCurrentUserServer, listTargetsForOwnerServer } from "@/lib/supabase"
 import { getEntitlementForUser } from "@/lib/policy/entitlementMiddleware"
 
+export const dynamic = 'force-dynamic'
+
 const normalizeBaseUrl = (input: string) => {
   const trimmed = input.trim()
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`

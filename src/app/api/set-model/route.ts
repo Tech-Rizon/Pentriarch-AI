@@ -3,7 +3,7 @@ import { getCurrentUserServer } from '@/lib/supabase'
 import { AI_MODELS } from '@/lib/mcpRouter'
 import { supabase } from '@/lib/supabase'
 
-interface UserPreferences {
+export const dynamic = 'force-dynamic'interface UserPreferences {
   primary_model: string
   fallback_model: string
   auto_fallback: boolean
