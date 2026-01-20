@@ -7,7 +7,6 @@ on:
     branches: [ main ]
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || 'tech-rizon' }}
   VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
 jobs:
@@ -208,16 +207,24 @@ jobs:
       - name: 🔧 Install Vercel CLI
         run: npm install -g vercel@latest
 
+      - name: � Set Vercel organization ID
+        run: |
+          if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            echo "VERCEL_ORG_ID=tech-rizon" >> $GITHUB_ENV
+          else
+            echo "VERCEL_ORG_ID=${{ secrets.VERCEL_ORG_ID }}" >> $GITHUB_ENV
+          fi
+
       - name: 🔗 Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🏗️ Build project artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🚀 Deploy to Vercel (Production)
@@ -227,7 +234,7 @@ jobs:
           echo "PRODUCTION_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
           echo "🌟 Production deployed to: $DEPLOY_URL"
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🎉 Success notification
