@@ -423,6 +423,18 @@ export const updateScanStatusServer = async (
 ) => {
   const supabaseServer = getSupabaseServerClient()
   try {
+    let mergedMetadata = metadata
+    if (metadata) {
+      const { data: existing } = await supabaseServer
+        .from('scans')
+        .select('metadata')
+        .eq('id', scanId)
+        .maybeSingle()
+      if (existing?.metadata && typeof existing.metadata === 'object') {
+        mergedMetadata = { ...(existing.metadata as Record<string, unknown>), ...metadata }
+      }
+    }
+
     const updates: Partial<Scan> = {
       status,
       updated_at: new Date().toISOString()
@@ -432,8 +444,8 @@ export const updateScanStatusServer = async (
       updates.end_time = new Date().toISOString()
     }
 
-    if (metadata) {
-      updates.metadata = metadata
+    if (mergedMetadata) {
+      updates.metadata = mergedMetadata
     }
 
     if (extraUpdates) {
@@ -445,7 +457,7 @@ export const updateScanStatusServer = async (
       .update(updates)
       .eq('id', scanId)
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) throw error
     return data
@@ -500,7 +512,7 @@ export const getScanByIdServer = async (scanId: string) => {
       .from('scans')
       .select('*')
       .eq('id', scanId)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
     return data

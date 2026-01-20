@@ -141,7 +141,7 @@ class DockerManager extends EventEmitter {
     }
     const meta = TOOL_IMAGES[tokens[0] as keyof typeof TOOL_IMAGES] || {
       image: DEFAULT_IMAGE,
-      baseArgs: [] as string[]
+      baseArgs: [tokens[0]]
     };
 
     // If you later add flag normalization, do it here (e.g., for nmap on Windows/docker).
@@ -202,6 +202,14 @@ class DockerManager extends EventEmitter {
     });
 
     execution.containerId = container.id;
+    await updateScanStatusServer(scanId, "running", {
+      container: {
+        id: container.id,
+        image: meta.image,
+        status: "created",
+        started_at: new Date().toISOString()
+      }
+    });
 
     const attachStream = await container.attach({ stream: true, stdout: true, stderr: true });
     const stdout = new PassThrough();
@@ -252,10 +260,29 @@ class DockerManager extends EventEmitter {
         execution.killed = true;
         await container.stop({ t: 0 });
         await container.remove({ force: true });
+        await updateScanStatusServer(scanId, "failed", {
+          execution_error: "Scan killed (timeout)",
+          execution_duration: Date.now() - begin,
+          direct_execution: true,
+          container: {
+            id: container.id,
+            image: meta.image,
+            status: "killed",
+            ended_at: new Date().toISOString()
+          }
+        });
       } catch {}
     }, killAfterMs);
 
     await container.start();
+    await updateScanStatusServer(scanId, "running", {
+      container: {
+        id: container.id,
+        image: meta.image,
+        status: "running",
+        started_at: new Date().toISOString()
+      }
+    });
     const done = await container.wait();
 
     if (execution.timeout) clearTimeout(execution.timeout);
@@ -269,6 +296,12 @@ class DockerManager extends EventEmitter {
         output_length: out.length,
         execution_duration: durationMs,
         direct_execution: true,
+        container: {
+          id: container.id,
+          image: meta.image,
+          status: "stopped",
+          ended_at: new Date().toISOString()
+        }
       });
       await insertScanLogServer({
         scan_id: scanId,
@@ -302,6 +335,12 @@ class DockerManager extends EventEmitter {
       execution_error: err || "Scan failed",
       execution_duration: durationMs,
       direct_execution: true,
+      container: {
+        id: container.id,
+        image: meta.image,
+        status: execution.killed ? "killed" : "error",
+        ended_at: new Date().toISOString()
+      }
     });
     await insertScanLogServer({
       scan_id: scanId,

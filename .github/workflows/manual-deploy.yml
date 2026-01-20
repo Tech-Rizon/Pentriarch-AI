@@ -24,7 +24,7 @@ on:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
 jobs:
   # ===== EMERGENCY DEPLOYMENT =====
@@ -37,19 +37,25 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 🏗️ Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          bun-version: latest
+          version: latest
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
 
       - name: 🔧 Quality checks (if not skipped)
         if: ${{ !github.event.inputs.skip_tests }}
         run: |
           echo "🔍 Running quality checks..."
-          bun run build
+          pnpm build
           echo "✅ Quality checks completed"
 
       - name: ⚠️ Skip quality checks warning
@@ -59,7 +65,7 @@ jobs:
           echo "🚨 This should only be used for critical hotfixes"
 
       - name: 🔧 Install Vercel CLI
-        run: bun add -g vercel@latest
+        run: npm install -g vercel@latest
 
       - name: 🔗 Pull Vercel environment
         run: |
@@ -68,6 +74,9 @@ jobs:
           else
             vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
           fi
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🏗️ Build project artifacts
         run: |
@@ -76,6 +85,9 @@ jobs:
           else
             vercel build --token=${{ secrets.VERCEL_TOKEN }}
           fi
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🚀 Deploy to Vercel
         id: deploy
@@ -88,6 +100,9 @@ jobs:
             echo "🚀 Preview deployment: $DEPLOY_URL"
           fi
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 📝 Create deployment summary
         run: |

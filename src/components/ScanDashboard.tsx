@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { getCurrentUserClient, getScansForUser, type Scan } from '@/lib/supabase'
 import ContainerManager from './ContainerManager'
+import ReportDetail from '@/components/ReportDetail'
 
 interface DashboardStats {
   totalScans: number
@@ -52,6 +53,7 @@ export default function ScanDashboard() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [toolFilter, setToolFilter] = useState('all')
   const [selectedTab, setSelectedTab] = useState('scans')
+  const [selectedScanId, setSelectedScanId] = useState<string | null>(null)
 
   useEffect(() => {
     loadUser()
@@ -166,6 +168,10 @@ export default function ScanDashboard() {
 
   // Get running scans for container monitoring
   const runningScans = scans.filter(scan => scan.status === 'running' || scan.status === 'queued')
+
+  if (selectedScanId) {
+    return <ReportDetail scanId={selectedScanId} onClose={() => setSelectedScanId(null)} />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
@@ -405,7 +411,12 @@ export default function ScanDashboard() {
                           </div>
 
                           <div className="flex items-center space-x-2 ml-4">
-                            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                              onClick={() => setSelectedScanId(scan.id)}
+                            >
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>

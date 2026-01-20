@@ -8,7 +8,7 @@ on:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
 jobs:
   # ===== QUALITY ASSURANCE =====
@@ -20,24 +20,30 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 🏗️ Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          bun-version: latest
+          version: latest
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
 
       - name: 🔧 Type checking
-        run: bunx tsc --noEmit
+        run: pnpm exec tsc --noEmit
         continue-on-error: true
 
       - name: 🧹 Linting (Biome)
-        run: bun run lint
+        run: pnpm lint
         continue-on-error: true
 
       - name: 🏗️ Build check
-        run: bun run build
+        run: pnpm build
         env:
           SKIP_TYPE_CHECK: true
           SKIP_LINT: true
@@ -58,15 +64,23 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 🏗️ Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
 
       - name: 🔍 Dependency vulnerability scan
         run: |
-          bunx audit || echo "Audit completed with warnings"
+          pnpm audit || echo "Audit completed with warnings"
 
       - name: 📋 Security checklist
         run: |
@@ -88,20 +102,34 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 🏗️ Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
 
       - name: 🔧 Install Vercel CLI
-        run: bun add -g vercel@latest
+        run: npm install -g vercel@latest
 
       - name: 🔗 Pull Vercel environment
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🏗️ Build project artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🚀 Deploy to Vercel (Preview)
         id: deploy-preview
@@ -109,6 +137,9 @@ jobs:
           DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "PREVIEW_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
           echo "🚀 Preview deployed to: $DEPLOY_URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 💬 Comment on PR
         uses: actions/github-script@v7
@@ -160,20 +191,34 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 🏗️ Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
 
       - name: 🔧 Install Vercel CLI
-        run: bun add -g vercel@latest
+        run: npm install -g vercel@latest
 
       - name: 🔗 Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🏗️ Build project artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🚀 Deploy to Vercel (Production)
         id: deploy-production
@@ -181,6 +226,9 @@ jobs:
           DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "PRODUCTION_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
           echo "🌟 Production deployed to: $DEPLOY_URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
       - name: 🎉 Success notification
         run: |

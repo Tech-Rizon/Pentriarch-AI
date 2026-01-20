@@ -890,6 +890,17 @@ export function generateWhatwebCommand(target: string, flags?: string[]): Comman
   }
 }
 
+function generateGenericCommand(toolName: string, target: string, flags?: string[]): Command {
+  const sanitizedTarget = sanitizeTargetUrl(target)
+  const sanitizedFlags = flags ? sanitizeFlags(flags) : []
+
+  return {
+    tool: toolName,
+    target: sanitizedTarget,
+    flags: sanitizedFlags
+  }
+}
+
 // Main routing function
 export function routeToolCommand(toolName: string, target: string, customFlags?: string[]): Command {
   const tool = toolName.toLowerCase().trim()
@@ -908,17 +919,12 @@ export function routeToolCommand(toolName: string, target: string, customFlags?:
     case 'whatweb':
       return generateWhatwebCommand(target, customFlags)
     default:
-      throw new Error(`Tool '${toolName}' is not supported or not found`)
+      return generateGenericCommand(tool, target, customFlags)
   }
 }
 
 // Command to shell string conversion
 export function commandToShellString(command: Command): string {
-  const tool = SECURITY_TOOLS.find(t => t.id === command.tool)
-  if (!tool) {
-    throw new Error(`Tool ${command.tool} not found`)
-  }
-
   let shellCommand = command.tool
 
   // Add flags
@@ -958,11 +964,6 @@ export function commandToShellString(command: Command): string {
 }
 
 export function commandToToolString(command: Command): string {
-  const tool = SECURITY_TOOLS.find(t => t.id === command.tool)
-  if (!tool) {
-    throw new Error(`Tool ${command.tool} not found`)
-  }
-
   let shellCommand = command.tool
 
   if (command.flags && command.flags.length > 0) {
