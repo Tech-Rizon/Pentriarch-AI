@@ -49,7 +49,7 @@ import {
   Save,
   X
 } from 'lucide-react'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserClient } from '@/lib/supabase'
 
 interface UserData {
   id: string

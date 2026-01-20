@@ -2,7 +2,7 @@
 import request from 'supertest'
 import { createMocks } from 'node-mocks-http'
 import { GET, POST, PATCH } from '@/app/api/settings/route'
-import { getCurrentUser } from '@/lib/supabase'
+import { getCurrentUserServer } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 
 import '@types/jest'

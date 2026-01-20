@@ -60,6 +60,7 @@
     "@eslint/eslintrc": "^3.3.3",
     "@netlify/plugin-nextjs": "^5.15.5",
     "@tailwindcss/postcss": "^4.1.18",
+    "@types/dockerode": "^3.3.31",
     "@types/estree": "^1.0.8",
     "@types/jest": "^30.0.0",
     "@types/json-schema": "^7.0.15",

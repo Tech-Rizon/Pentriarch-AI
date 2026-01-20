@@ -226,6 +226,7 @@ export async function POST(request: NextRequest) {
 
     // If scanId provided, log to scan_logs table
     if (scanId) {
+      const supabaseServer = getSupabaseServerClient()
       const { error } = await supabaseServer
         .from('scan_logs')
         .insert([auditEvent])
@@ -269,6 +270,7 @@ export async function PUT(request: NextRequest) {
     const { format = 'json', includeSystemLogs = false } = await request.json()
 
     // Get comprehensive audit data
+    const supabaseServer = getSupabaseServerClient()
     const { data: auditData, error } = await supabaseServer
       .from('scans')
       .select(`

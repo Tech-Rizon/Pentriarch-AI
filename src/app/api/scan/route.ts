@@ -73,6 +73,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      if (!entitlementResult.target) {
+        return NextResponse.json(
+          { error: 'Target not found', details: 'Unable to load target details' },
+          { status: 404 }
+        )
+      }
+
       const approval = approveScanRequest({
         id: entitlementResult.target.id,
         host: entitlementResult.target.host,
@@ -220,7 +227,7 @@ Target: "${target}"`
       // Update scan status to running
       await updateScanStatusServer(scan.id, 'running')
 
-      let suggestions = []
+      let suggestions: any[] = []
       let modelName = selectedModel.name
       let modelId = selectedModel.id
       let aiFallbackUsed = false
