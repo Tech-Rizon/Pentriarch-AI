@@ -210,7 +210,7 @@ jobs:
       - name: � Set Vercel organization ID
         run: |
           if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
-            echo "VERCEL_ORG_ID=tech-rizon" >> $GITHUB_ENV
+            echo "VERCEL_ORG_ID=c022in" >> $GITHUB_ENV
           else
             echo "VERCEL_ORG_ID=${{ secrets.VERCEL_ORG_ID }}" >> $GITHUB_ENV
           fi
