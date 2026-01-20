@@ -4,11 +4,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
+// Only log warnings if not in build phase
+if (typeof window === 'undefined' && !process.env.VERCEL_ENV_BUILDING && (!supabaseUrl || !supabaseAnonKey)) {
+  console.warn('⚠️ Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+// Lazy initialize client only when needed (not at build time)
+let supabaseClient: ReturnType<typeof createClient> | null = null
+
+export const supabase = (() => {
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl || '', supabaseAnonKey || '')
+  }
+  return supabaseClient
+})()
 
 const requireSupabaseConfig = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -563,11 +572,14 @@ export const getReportByScanId = async (scanId: string) => {
       .from('reports')
       .select('*')
       .eq('scan_id', scanId)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
     return data
   } catch (error) {
+    if (error && typeof error === 'object' && (error as { code?: string }).code === 'PGRST116') {
+      return null
+    }
     console.error('Supabase query error:', error)
     throw error
   }
@@ -580,11 +592,14 @@ export const getReportByScanIdServer = async (scanId: string) => {
       .from('reports')
       .select('*')
       .eq('scan_id', scanId)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
     return data
   } catch (error) {
+    if (error && typeof error === 'object' && (error as { code?: string }).code === 'PGRST116') {
+      return null
+    }
     console.error('Supabase query error:', error)
     throw error
   }
