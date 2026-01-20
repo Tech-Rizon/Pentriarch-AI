@@ -19,7 +19,7 @@ const mockUser = {
 
 beforeEach(() => {
   jest.resetAllMocks()
-  ;(getCurrentUser as jest.Mock).mockResolvedValue(mockUser)
+  ;(getCurrentUserServer as jest.Mock).mockResolvedValue(mockUser)
 })
 
 describe('GET /api/settings', () => {
@@ -39,7 +39,7 @@ describe('GET /api/settings', () => {
   })
 
   it('returns 401 if user not authenticated', async () => {
-    ;(getCurrentUser as jest.Mock).mockResolvedValue(null)
+    ;(getCurrentUserServer as jest.Mock).mockResolvedValue(null)
     const { req, res } = createMocks({ method: 'GET' })
     await GET(req as any)
     expect(res._getStatusCode()).toBe(401)

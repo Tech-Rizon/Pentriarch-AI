@@ -104,7 +104,7 @@ export default function UserProfile() {
 
   const loadUserProfile = async () => {
     try {
-      const currentUser = await getCurrentUser()
+      const currentUser = await getCurrentUserClient()
       if (currentUser) {
         const userData: UserData = {
           id: currentUser.id,
