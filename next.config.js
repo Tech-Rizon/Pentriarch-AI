@@ -72,6 +72,9 @@ const nextConfig = {
     return config
   },
 
+  // Turbopack configuration (Next.js 16 default)
+  turbopack: {},
+
   // Experimental features for better compatibility
   experimental: {
     // Reserved for future experimental features
