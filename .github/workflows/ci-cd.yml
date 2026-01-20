@@ -1,4 +1,4 @@
-name: 🚀 Pentriarch AI - CI/CD Pipeline
+name: ?? Pentriarch AI - CI/CD Pipeline
 
 on:
   push:
@@ -15,168 +15,208 @@ env:
 jobs:
   # ===== QUALITY ASSURANCE =====
   quality-checks:
-    name: 🔍 Quality Assurance
+    name: ?? Quality Assurance
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: ?? Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup pnpm
+      - name: ??? Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: 🏗️ Setup Node.js
+      - name: ??? Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: 📦 Install dependencies
+      - name: ?? Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔧 Type checking
+      - name: ?? Type checking
         run: pnpm exec tsc --noEmit
         continue-on-error: true
 
-      - name: 🧹 Linting (Biome)
+      - name: ?? Linting (Biome)
         run: pnpm lint
         continue-on-error: true
 
-      - name: 🏗️ Build check
+      - name: ??? Build check
         run: pnpm build
         env:
           SKIP_TYPE_CHECK: true
           SKIP_LINT: true
 
-      - name: 📊 Bundle analysis
+      - name: ?? Bundle analysis
         run: |
-          echo "Build completed successfully ✅"
+          echo "Build completed successfully ?"
           echo "Bundle size analysis:"
           du -sh .next/ 2>/dev/null || echo "Build directory not found"
 
   # ===== SECURITY SCAN =====
   security-scan:
-    name: 🛡️ Security Scan
+    name: ??? Security Scan
     runs-on: ubuntu-latest
     needs: quality-checks
 
     steps:
-      - name: 📥 Checkout repository
+      - name: ?? Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup pnpm
+      - name: ??? Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: 🏗️ Setup Node.js
+      - name: ??? Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: 📦 Install dependencies
+      - name: ?? Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔍 Dependency vulnerability scan
+      - name: ?? Dependency vulnerability scan
         run: |
           pnpm audit || echo "Audit completed with warnings"
 
-      - name: 📋 Security checklist
+      - name: ?? Security checklist
         run: |
-          echo "🔒 Security Checklist:"
-          echo "✅ Dependencies scanned"
-          echo "✅ Environment variables secured"
-          echo "✅ Authentication system implemented"
-          echo "✅ RBAC system active"
-          echo "✅ Security headers configured"
+          echo "?? Security Checklist:"
+          echo "? Dependencies scanned"
+          echo "? Environment variables secured"
+          echo "? Authentication system implemented"
+          echo "? RBAC system active"
+          echo "? Security headers configured"
 
   # ===== PREVIEW DEPLOYMENT =====
   preview-deployment:
-    name: 🚀 Preview Deployment
+    name: ?? Preview Deployment
     runs-on: ubuntu-latest
     needs: [quality-checks, security-scan]
     if: github.event_name == 'pull_request'
 
     steps:
-      - name: 📥 Checkout repository
+      - name: ?? Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Setup pnpm
+      - name: ??? Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: 🏗️ Setup Node.js
+      - name: ??? Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: 📦 Install dependencies
+      - name: ?? Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🚀 Production Deployment
+      - name: ?? Production Deployment
         run: |
-          echo "🚀 Vercel GitHub integration will deploy this commit"
-          echo "📍 Application URL: https://pentriarch.com"
+          echo "?? Vercel GitHub integration will deploy this commit"
+          echo "?? Application URL: https://pentriarch.com"
 
-      - name: ✅ Deployment Notification
+      - name: ? Deployment Notification
         run: |
-          echo "✅ All checks passed"
-          echo "🚀 Vercel will deploy this commit"
-          echo "📍 https://pentriarch.com"
+          echo "? All checks passed"
+          echo "?? Vercel will deploy this commit"
+          echo "?? https://pentriarch.com"
+
+  # ===== PRODUCTION DEPLOYMENT =====
+  production-deployment:
+    name: ?? Production Deployment
+    runs-on: ubuntu-latest
+    needs: [quality-checks, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production
+      url: https://pentriarch.com
+
+    steps:
+      - name: ?? Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ??? Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: ??? Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - name: ?? Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ?? Production Deployment
+        run: |
+          echo "?? Vercel GitHub integration will deploy this commit"
+          echo "?? Application URL: https://pentriarch.com"
+
+      - name: ? Deployment Notification
+        run: |
+          echo "? All checks passed"
+          echo "?? Vercel will deploy this commit"
+          echo "?? https://pentriarch.com"
 
   # ===== POST-DEPLOYMENT CHECKS =====
   post-deployment-checks:
-    name: ✅ Post-Deployment Verification
+    name: ? Post-Deployment Verification
     runs-on: ubuntu-latest
     needs: production-deployment
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: 🔍 Health check
+      - name: ?? Health check
         run: |
-          echo "🔍 Running post-deployment health checks..."
+          echo "?? Running post-deployment health checks..."
           
           # Wait a moment for deployment to be fully live
           sleep 10
           
           # Basic connectivity check
           if curl -f -s "https://pentriarch.com" > /dev/null 2>&1; then
-            echo "✅ pentriarch.com is accessible"
+            echo "? pentriarch.com is accessible"
           else
-            echo "⚠️ Still deploying, will be live shortly"
+            echo "?? Still deploying, will be live shortly"
           fi
 
-      - name: 📈 Performance check
+      - name: ?? Performance check
         run: |
-          echo "📈 Performance verification"
-          echo "✅ All systems operational"
+          echo "?? Performance verification"
+          echo "? All systems operational"
 
-      - name: 🎯 Deployment Summary
+      - name: ?? Deployment Summary
         run: |
-          echo "🎯 DEPLOYMENT SUMMARY:"
-          echo "✅ Quality checks: PASSED"
-          echo "✅ Security scan: PASSED"
-          echo "✅ Production deployment: INITIATED via Vercel"
-          echo "✅ Post-deployment verification: COMPLETED"
-          echo "🚀 Pentriarch AI deployment in progress!"
+          echo "?? DEPLOYMENT SUMMARY:"
+          echo "? Quality checks: PASSED"
+          echo "? Security scan: PASSED"
+          echo "? Production deployment: INITIATED via Vercel"
+          echo "? Post-deployment verification: COMPLETED"
+          echo "?? Pentriarch AI deployment in progress!"
           echo ""
           echo "Monitor deployment:"
-          echo "📊 Vercel Dashboard: https://vercel.com/tech-rizon/pentriarch-ai"
-          echo "🌐 Application URL: https://pentriarch.com"
+          echo "?? Vercel Dashboard: https://vercel.com/tech-rizon/pentriarch-ai"
+          echo "?? Application URL: https://pentriarch.com"
 
 # ===== WORKFLOW SUMMARY =====
 # This CI/CD pipeline provides:
-# 1. 🔍 Automated quality assurance (type checking, linting, build verification)
-# 2. 🛡️ Security scanning and dependency analysis
-# 3. 🚀 Automatic preview deployments for pull requests (via Vercel GitHub Integration)
-# 4. 🌟 Production deployment on main branch merges (via Vercel GitHub Integration)
-# 5. ✅ Post-deployment verification and health checks
-# 6. 📊 Comprehensive logging and status reporting
+# 1. ?? Automated quality assurance (type checking, linting, build verification)
+# 2. ??? Security scanning and dependency analysis
+# 3. ?? Automatic preview deployments for pull requests (via Vercel GitHub Integration)
+# 4. ?? Production deployment on main branch merges (via Vercel GitHub Integration)
+# 5. ? Post-deployment verification and health checks
+# 6. ?? Comprehensive logging and status reporting
 #
 # NOTE: Vercel's native GitHub integration handles the actual deployment.
 # This workflow performs quality checks and coordinates the deployment process.
