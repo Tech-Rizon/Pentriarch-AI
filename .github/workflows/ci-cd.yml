@@ -204,8 +204,6 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔧 Install Vercel CLI
-        run: npm install -g vercel@latest
 
       - name: � Set Vercel organization ID
         run: |
@@ -221,21 +219,14 @@ jobs:
           VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
-      - name: 🏗️ Build project artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
-
       - name: 🚀 Deploy to Vercel (Production)
         id: deploy-production
-        run: |
-          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "PRODUCTION_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          echo "🌟 Production deployed to: $DEPLOY_URL"
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
+        uses: vercel/action@v4
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ env.VERCEL_ORG_ID }}
+          vercel-project-id: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
+          production: true
 
       - name: 🎉 Success notification
         run: |
