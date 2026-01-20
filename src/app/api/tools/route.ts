@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getCurrentUserServer } from '@/lib/supabase'
+
+// Mark as dynamic to skip build-time generation
+export const dynamic = 'force-dynamic'
+
 import {
   SECURITY_TOOLS,
   getAllTools,

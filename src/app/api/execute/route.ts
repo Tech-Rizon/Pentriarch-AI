@@ -3,6 +3,9 @@ import { ensureUserProfileServer, getCurrentUserServer, insertScanLogServer, ins
 import { routeToolCommand, validateCommand, SECURITY_TOOLS, commandToToolString, type Command } from '@/lib/toolsRouter'
 import { dockerManager } from '@/lib/dockerManager'
 import { WebSocketBroadcaster } from '@/lib/websocket'
+
+// Mark as dynamic to skip build-time generation
+export const dynamic = 'force-dynamic'
 import { getErrorMessage } from '@/lib/auth-helpers'
 
 export const runtime = "nodejs";
