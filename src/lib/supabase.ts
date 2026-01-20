@@ -12,22 +12,12 @@ if (typeof window === 'undefined' && !process.env.VERCEL_ENV_BUILDING && (!supab
 // Lazy initialize client only when needed (not at build time)
 let supabaseClient: ReturnType<typeof createClient> | null = null
 
-export const getSupabaseClient = () => {
-  if (!supabaseClient && supabaseUrl && supabaseAnonKey) {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = (() => {
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl || '', supabaseAnonKey || '')
   }
   return supabaseClient
-}
-
-export const supabase = new Proxy({} as any, {
-  get: (target, prop) => {
-    const client = getSupabaseClient()
-    if (!client) {
-      throw new Error('Supabase client not initialized. Missing environment variables.')
-    }
-    return (client as any)[prop]
-  }
-})
+})()
 
 const requireSupabaseConfig = () => {
   if (!supabaseUrl || !supabaseAnonKey) {

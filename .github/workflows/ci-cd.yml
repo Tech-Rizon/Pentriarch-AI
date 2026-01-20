@@ -1,4 +1,4 @@
-name: ?? Pentriarch AI - CI/CD Pipeline
+name: "?? Pentriarch AI - CI/CD Pipeline"
 
 on:
   push:
@@ -15,42 +15,42 @@ env:
 jobs:
   # ===== QUALITY ASSURANCE =====
   quality-checks:
-    name: ?? Quality Assurance
+    name: "?? Quality Assurance"
     runs-on: ubuntu-latest
 
     steps:
-      - name: ?? Checkout repository
+      - name: "?? Checkout repository"
         uses: actions/checkout@v4
 
-      - name: ??? Setup pnpm
+      - name: "??? Setup pnpm"
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: ??? Setup Node.js
+      - name: "??? Setup Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: ?? Install dependencies
+      - name: "?? Install dependencies"
         run: pnpm install --frozen-lockfile
 
-      - name: ?? Type checking
+      - name: "?? Type checking"
         run: pnpm exec tsc --noEmit
         continue-on-error: true
 
-      - name: ?? Linting (Biome)
+      - name: "?? Linting (Biome)"
         run: pnpm lint
         continue-on-error: true
 
-      - name: ??? Build check
+      - name: "??? Build check"
         run: pnpm build
         env:
           SKIP_TYPE_CHECK: true
           SKIP_LINT: true
 
-      - name: ?? Bundle analysis
+      - name: "?? Bundle analysis"
         run: |
           echo "Build completed successfully ?"
           echo "Bundle size analysis:"
@@ -58,33 +58,33 @@ jobs:
 
   # ===== SECURITY SCAN =====
   security-scan:
-    name: ??? Security Scan
+    name: "??? Security Scan"
     runs-on: ubuntu-latest
     needs: quality-checks
 
     steps:
-      - name: ?? Checkout repository
+      - name: "?? Checkout repository"
         uses: actions/checkout@v4
 
-      - name: ??? Setup pnpm
+      - name: "??? Setup pnpm"
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: ??? Setup Node.js
+      - name: "??? Setup Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: ?? Install dependencies
+      - name: "?? Install dependencies"
         run: pnpm install --frozen-lockfile
 
-      - name: ?? Dependency vulnerability scan
+      - name: "?? Dependency vulnerability scan"
         run: |
           pnpm audit || echo "Audit completed with warnings"
 
-      - name: ?? Security checklist
+      - name: "?? Security checklist"
         run: |
           echo "?? Security Checklist:"
           echo "? Dependencies scanned"
@@ -95,35 +95,34 @@ jobs:
 
   # ===== PREVIEW DEPLOYMENT =====
   preview-deployment:
-    name: ?? Preview Deployment
+    name: "?? Preview Deployment"
     runs-on: ubuntu-latest
     needs: [quality-checks, security-scan]
     if: github.event_name == 'pull_request'
 
     steps:
-      - name: ?? Checkout repository
+      - name: "?? Checkout repository"
         uses: actions/checkout@v4
 
-      - name: ??? Setup pnpm
+      - name: "??? Setup pnpm"
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: ??? Setup Node.js
+      - name: "??? Setup Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: ?? Install dependencies
+      - name: "?? Install dependencies"
         run: pnpm install --frozen-lockfile
 
-      - name: ?? Production Deployment
+      - name: "?? Preview Deployment"
         run: |
-          echo "?? Vercel GitHub integration will deploy this commit"
-          echo "?? Application URL: https://pentriarch.com"
+          echo "?? Vercel GitHub integration will deploy this PR automatically"
 
-      - name: ? Deployment Notification
+      - name: "? Deployment Notification"
         run: |
           echo "? All checks passed"
           echo "?? Vercel will deploy this commit"
@@ -131,7 +130,7 @@ jobs:
 
   # ===== PRODUCTION DEPLOYMENT =====
   production-deployment:
-    name: ?? Production Deployment
+    name: "?? Production Deployment"
     runs-on: ubuntu-latest
     needs: [quality-checks, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -141,29 +140,29 @@ jobs:
       url: https://pentriarch.com
 
     steps:
-      - name: ?? Checkout repository
+      - name: "?? Checkout repository"
         uses: actions/checkout@v4
 
-      - name: ??? Setup pnpm
+      - name: "??? Setup pnpm"
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      - name: ??? Setup Node.js
+      - name: "??? Setup Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
 
-      - name: ?? Install dependencies
+      - name: "?? Install dependencies"
         run: pnpm install --frozen-lockfile
 
-      - name: ?? Production Deployment
+      - name: "?? Production Deployment"
         run: |
           echo "?? Vercel GitHub integration will deploy this commit"
           echo "?? Application URL: https://pentriarch.com"
 
-      - name: ? Deployment Notification
+      - name: "? Deployment Notification"
         run: |
           echo "? All checks passed"
           echo "?? Vercel will deploy this commit"
@@ -171,13 +170,13 @@ jobs:
 
   # ===== POST-DEPLOYMENT CHECKS =====
   post-deployment-checks:
-    name: ? Post-Deployment Verification
+    name: "? Post-Deployment Verification"
     runs-on: ubuntu-latest
     needs: production-deployment
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: ?? Health check
+      - name: "?? Health check"
         run: |
           echo "?? Running post-deployment health checks..."
           
@@ -191,12 +190,12 @@ jobs:
             echo "?? Still deploying, will be live shortly"
           fi
 
-      - name: ?? Performance check
+      - name: "?? Performance check"
         run: |
           echo "?? Performance verification"
           echo "? All systems operational"
 
-      - name: ?? Deployment Summary
+      - name: "?? Deployment Summary"
         run: |
           echo "?? DEPLOYMENT SUMMARY:"
           echo "? Quality checks: PASSED"
