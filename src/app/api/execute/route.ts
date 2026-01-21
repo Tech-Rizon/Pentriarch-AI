@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check user permissions for high-risk tools
-    if (toolInfo.risk_level === 'critical' && (user as Record<string, unknown>)?.plan !== 'enterprise') {
+    const userPlan = (user as { user_metadata?: { plan?: string } }).user_metadata?.plan
+    if (toolInfo.risk_level === 'critical' && userPlan !== 'enterprise') {
       return NextResponse.json({
         error: 'Critical risk tools require enterprise plan'
       }, { status: 403 })

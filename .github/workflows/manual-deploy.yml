@@ -1,127 +1,13 @@
-name: 🚨 Manual Deployment & Hotfix
-
+name: Manual Deployment
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'preview'
-        type: choice
-        options:
-          - preview
-          - production
-      deploy_reason:
-        description: 'Reason for manual deployment'
-        required: true
-        default: 'Manual deployment'
-        type: string
-      skip_tests:
-        description: 'Skip quality checks (emergency only)'
-        required: false
-        default: false
-        type: boolean
-
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
 
 jobs:
-  # ===== EMERGENCY DEPLOYMENT =====
   manual-deployment:
-    name: 🚨 Manual Deployment
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'pnpm'
-
-      - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🔧 Quality checks (if not skipped)
-        if: ${{ !github.event.inputs.skip_tests }}
+      - name: Deployment handled by Vercel
         run: |
-          echo "🔍 Running quality checks..."
-          pnpm build
-          echo "✅ Quality checks completed"
-
-      - name: ⚠️ Skip quality checks warning
-        if: ${{ github.event.inputs.skip_tests }}
-        run: |
-          echo "⚠️ WARNING: Quality checks skipped - Emergency deployment mode"
-          echo "🚨 This should only be used for critical hotfixes"
-
-      - name: 🔧 Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: 🔗 Pull Vercel environment
-        run: |
-          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
-            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          else
-            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-          fi
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
-
-      - name: 🏗️ Build project artifacts
-        run: |
-          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
-            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-          else
-            vercel build --token=${{ secrets.VERCEL_TOKEN }}
-          fi
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
-
-      - name: 🚀 Deploy to Vercel
-        id: deploy
-        run: |
-          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
-            DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-            echo "🌟 Production deployment: $DEPLOY_URL"
-          else
-            DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
-            echo "🚀 Preview deployment: $DEPLOY_URL"
-          fi
-          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_OUTPUT
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: prj_mpOwh5VLVg49Idtwu1jIBmQDakcP
-
-      - name: 📝 Create deployment summary
-        run: |
-          echo "## 🚨 Manual Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**🎯 Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "**📋 Reason:** ${{ github.event.inputs.deploy_reason }}" >> $GITHUB_STEP_SUMMARY
-          echo "**👤 Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**🕐 Deployed at:** $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "**🔗 URL:** ${{ steps.deploy.outputs.DEPLOY_URL }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event.inputs.skip_tests }}" == "true" ]; then
-            echo "⚠️ **WARNING:** Quality checks were skipped" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ **Quality checks:** Passed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: 🎉 Success notification
-        run: |
-          echo "🎉 Manual deployment completed successfully!"
-          echo "🔗 Deployed to: ${{ steps.deploy.outputs.DEPLOY_URL }}"
-          echo "📋 Reason: ${{ github.event.inputs.deploy_reason }}"
+          echo "Deployment handled by Vercel GitHub integration." >> "$GITHUB_STEP_SUMMARY"
+          echo "* Quality checks were skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed via Vercel GitHub integration." >> "$GITHUB_STEP_SUMMARY"

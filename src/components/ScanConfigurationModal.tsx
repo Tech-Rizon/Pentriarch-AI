@@ -65,8 +65,8 @@ export function ScanConfigurationModal({
       sqlmap: Database,
       gobuster: Server,
       whatweb: Target,
-    }
-    return iconMap[toolId] || Shield
+    } as const
+    return iconMap[toolId as keyof typeof iconMap] || Shield
   }
 
   const getUsageColor = (usage: string) => {

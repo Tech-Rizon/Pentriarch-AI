@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
     // Verify scan ownership
     const { getScanByIdServer } = await import('@/lib/supabase')
     const scan = await getScanByIdServer(scanId)
-
+    if (!scan) {
+      return NextResponse.json({ error: 'Scan not found' }, { status: 404 })
+    }
     if (scan.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }

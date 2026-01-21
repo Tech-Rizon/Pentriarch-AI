@@ -48,14 +48,20 @@ interface AIAnalysisPanelProps {
   onAnalysisComplete?: (result: AIAnalysisResult) => void
 }
 
+type AnalysisContext = {
+  environment: 'production' | 'staging' | 'development' | 'unknown'
+  businessCritical: boolean
+  exposureLevel: 'internet' | 'internal' | 'isolated'
+}
+
 export function AIAnalysisPanel({ scanId, onAnalysisComplete }: AIAnalysisPanelProps) {
   const [loading, setLoading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AIAnalysisResult | null>(null)
   const [analysisType, setAnalysisType] = useState<'full' | 'risk_only' | 'remediation_only' | 'predictive_only'>('full')
-  const [context, setContext] = useState({
-    environment: 'production' as const,
+  const [context, setContext] = useState<AnalysisContext>({
+    environment: 'production',
     businessCritical: true,
-    exposureLevel: 'internet' as const
+    exposureLevel: 'internet'
   })
   const [error, setError] = useState<string | null>(null)
 
@@ -133,7 +139,7 @@ export function AIAnalysisPanel({ scanId, onAnalysisComplete }: AIAnalysisPanelP
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Analysis Type</label>
-              <Select value={analysisType} onValueChange={(value: string) => setAnalysisType(value)}>
+              <Select value={analysisType} onValueChange={(value: string) => setAnalysisType(value as typeof analysisType)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

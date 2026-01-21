@@ -37,7 +37,7 @@ export const useWebSocket = ({
   })
 
   const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const connectionAttemptsRef = useRef(0)
 
   // Store callbacks in refs to avoid re-creating connect function
@@ -75,9 +75,13 @@ export const useWebSocket = ({
       case 'scan_complete':
         callbacks.onScanComplete?.(message.data)
         break
-      case 'scan_error':
-        callbacks.onScanError?.(message.data)
+      case 'scan_error': {
+        const errorMessage = typeof message.data === 'string'
+          ? message.data
+          : JSON.stringify(message.data)
+        callbacks.onScanError?.(errorMessage)
         break
+      }
     }
   }, []) // No dependencies to prevent recreation
 

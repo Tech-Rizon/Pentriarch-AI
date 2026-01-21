@@ -687,7 +687,7 @@ export default function AuditTrail() {
                           outerRadius={100}
                           fill="#8884d8"
                           dataKey="count"
-                          label={({ category, count }) => `${category}: ${count}`}
+                          label={({ payload }) => `${payload?.category ?? 'Other'}: ${payload?.count ?? 0}`}
                         >
                           {stats.eventsByCategory.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

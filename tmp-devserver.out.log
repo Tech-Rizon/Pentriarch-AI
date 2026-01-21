@@ -1,0 +1,21 @@
+
+> nextjs-shadcn@0.1.0 dev C:\Users\Window\Documents\GitHub\Pentriarch-AI
+> next dev -H 0.0.0.0 --turbopack
+
+▲ Next.js 16.1.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ✓ optimizeCss
+
+✓ Starting...
+✓ Ready in 1662ms
+ GET / 200 in 1815ms (compile: 1552ms, render: 263ms)
+ GET /dashboard 200 in 385ms (compile: 240ms, render: 145ms)
+Docker Manager initialized (REAL execution only; simulations removed).
+ GET /api/status 200 in 2.2s (compile: 644ms, render: 1576ms)
+ GET /api/entitlements 401 in 98ms (compile: 81ms, render: 18ms)
+ POST /api/targets 401 in 74ms (compile: 55ms, render: 18ms)
+ POST /api/scan 401 in 1335ms (compile: 484ms, render: 852ms)
+ GET /api/status/SCAN_ID 401 in 1132ms (compile: 843ms, render: 288ms)

@@ -124,24 +124,24 @@ This document guides AI agents working on the Pentriarch AI codebase—an advanc
 ## Key Files & Responsibilities
 
 ### Authentication & User Management
-- [middleware.ts](middleware.ts): Route protection, role-based access (admin/user/guest)
-- [src/lib/supabase.ts](src/lib/supabase.ts): Supabase client, server auth, user profile sync
-- [src/app/api/settings/route.ts](src/app/api/settings/route.ts): User preferences, API key validation
+- `middleware.ts`: Route protection, role-based access (admin/user/guest)
+- `src/lib/supabase.ts`: Supabase client, server auth, user profile sync
+- `src/app/api/settings/route.ts`: User preferences, API key validation
 
 ### Scan Execution Pipeline
-- [src/app/api/scan/route.ts](src/app/api/scan/route.ts): **Core endpoint**—validates target, checks entitlements, triggers workflow
-- [src/lib/agentWorkflow.ts](src/lib/agentWorkflow.ts): OpenAI Agents-based planning (selects tool + flags)
-- [src/lib/toolsRouter.ts](src/lib/toolsRouter.ts): Defines 100+ security tools (nmap, nikto, sqlmap, etc.) with risk levels & default flags
-- [src/lib/dockerManager.ts](src/lib/dockerManager.ts): Spawns/manages Docker containers, streams output to WebSocket
+- `src/app/api/scan/route.ts`: **Core endpoint**—validates target, checks entitlements, triggers workflow
+- `src/lib/agentWorkflow.ts`: OpenAI Agents-based planning (selects tool + flags)
+- `src/lib/toolsRouter.ts`: Defines 100+ security tools (nmap, nikto, sqlmap, etc.) with risk levels & default flags
+- `src/lib/dockerManager.ts`: Spawns/manages Docker containers, streams output to WebSocket
 
 ### AI Model Management
-- [src/lib/mcpRouter.ts](src/lib/mcpRouter.ts): **Model Control Protocol**—defines AI_MODELS array, loads API keys, selects best model for task
-- [src/app/api/ai-analysis/route.ts](src/app/api/ai-analysis/route.ts): Post-scan intelligent analysis & remediation suggestions
-- [src/app/api/set-model/route.ts](src/app/api/set-model/route.ts): User-configurable default model
+- `src/lib/mcpRouter.ts`: **Model Control Protocol**—defines AI_MODELS array, loads API keys, selects best model for task
+- `src/app/api/ai-analysis/route.ts`: Post-scan intelligent analysis & remediation suggestions
+- `src/app/api/set-model/route.ts`: User-configurable default model
 
 ### Admin & Monitoring
-- [src/app/api/admin/stats/route.ts](src/app/api/admin/stats/route.ts): Dashboard metrics (user count, scan stats, Docker health)
-- [src/app/api/audit/route.ts](src/app/api/audit/route.ts): Compliance logging with scan_logs table joins
+- `src/app/api/admin/stats/route.ts`: Dashboard metrics (user count, scan stats, Docker health)
+- `src/app/api/audit/route.ts`: Compliance logging with scan_logs table joins
 
 ## Critical Patterns
 
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
 
 ### 2. Entitlement-Based Access Control (Fine-Grained Plan Logic)
 
-[src/lib/policy/entitlementMiddleware.ts](src/lib/policy/entitlementMiddleware.ts) enforces plan-based feature access:
+`src/lib/policy/entitlementMiddleware.ts` enforces plan-based feature access:
 
 ```typescript
 const PLAN_SCAN_TYPES: Record<'free' | 'pro' | 'enterprise', string[]> = {
@@ -225,7 +225,7 @@ user_profiles:
 
 ### 3. AI Model Selection & Routing (MCPRouter)
 
-[src/lib/mcpRouter.ts](src/lib/mcpRouter.ts) implements intelligent model selection with automatic fallback:
+`src/lib/mcpRouter.ts` implements intelligent model selection with automatic fallback:
 
 **AI_MODELS array** defines 7 models across 4 providers:
 - **OpenAI**: gpt-4, gpt-4-mini (reasoning/accuracy focus)
@@ -278,7 +278,7 @@ fallbackOrder = ['gpt-4-mini', 'claude-3-haiku', 'llama-3.1-8b-instruct', 'deeps
 
 ### 4. Tool Execution Safety & Docker Isolation
 
-[src/lib/toolsRouter.ts](src/lib/toolsRouter.ts) defines 100+ security tools with safety constraints:
+`src/lib/toolsRouter.ts` defines 100+ security tools with safety constraints:
 
 ```typescript
 export interface SecurityTool {
@@ -353,7 +353,7 @@ private async realExecution(scanId: string, command: string, userId: string) {
 
 **Key points:**
 - All execution happens in isolated Docker container
-- Docker image specified in [src/lib/toolImages.ts](src/lib/toolImages.ts)
+- Docker image specified in `src/lib/toolImages.ts`
 - Tool binary + base flags prepended (nmap → ["nmap", "-sV", "-sC", ...userFlags])
 - stdout/stderr captured and streamed to WebSocket in real-time
 - Container killed forcefully if timeout exceeded
@@ -361,7 +361,7 @@ private async realExecution(scanId: string, command: string, userId: string) {
 
 ### 5. Real-Time WebSocket Streaming
 
-[src/lib/websocket.ts](src/lib/websocket.ts) implements browser-server real-time updates:
+`src/lib/websocket.ts` implements browser-server real-time updates:
 
 **Server-side broadcast:**
 ```typescript
@@ -410,7 +410,7 @@ useEffect(() => {
 
 ### 6. Agent Workflow (OpenAI Agents SDK)
 
-[src/lib/agentWorkflow.ts](src/lib/agentWorkflow.ts) uses OpenAI Agents for intelligent tool planning:
+`src/lib/agentWorkflow.ts` uses OpenAI Agents for intelligent tool planning:
 
 ```typescript
 const scanPlanner = new Agent({
@@ -1090,20 +1090,20 @@ showToast('✅ Scan finished in 4m 32s')
 
 ### Client Components
 - Use `"use client"` pragma for interactivity
-- [src/components/ChatKitConsole.tsx](src/components/ChatKitConsole.tsx): OpenAI ChatKit widget with entitlement filtering
+- `src/components/ChatKitConsole.tsx`: OpenAI ChatKit widget with entitlement filtering
 - All UI built with shadcn/ui (Alert, Card, Button, Select, etc.)
 - Components update via real-time WebSocket or polling
 
 ### Hooks
-- [src/hooks/useWebSocket.ts](src/hooks/useWebSocket.ts): Real-time scan progress
+- `src/hooks/useWebSocket.ts`: Real-time scan progress
   - Manages WebSocket connection + fallback polling
   - Subscribes to specific scans, containers, notifications
   - Handles reconnection logic (exponential backoff)
   - Callback-based architecture (onScanProgress, onScanComplete, etc.)
-- [src/hooks/usePanelLayout.ts](src/hooks/usePanelLayout.ts): Resizable panel state
+- `src/hooks/usePanelLayout.ts`: Resizable panel state
 
 ### Server Boundary (`"use server"`)
-Functions in [src/lib/supabase.ts](src/lib/supabase.ts) marked for server-only execution:
+Functions in `src/lib/supabase.ts` marked for server-only execution:
 - `getCurrentUserServer()` - Extract auth from request cookies
 - `insertScanServer()`, `updateScanStatusServer()` - DB writes
 - `getScanLogsServer()` - Fetch logs with Supabase
@@ -1111,7 +1111,7 @@ Functions in [src/lib/supabase.ts](src/lib/supabase.ts) marked for server-only e
 
 ## Middleware & Route Protection
 
-### [middleware.ts](middleware.ts) Flow
+### `middleware.ts` Flow
 
 ```typescript
 PUBLIC_ROUTES = [/, /auth, /docs, /privacy]
@@ -1212,7 +1212,7 @@ const channel = supabase
 ## Integration Points & External Services
 
 ### 1. OpenAI API Integration
-**Files:** [src/lib/mcpRouter.ts](src/lib/mcpRouter.ts), [src/app/api/ai-analysis/route.ts](src/app/api/ai-analysis/route.ts)
+**Files:** `src/lib/mcpRouter.ts`, `src/app/api/ai-analysis/route.ts`
 
 ```typescript
 // MCPRouter.callOpenAI()
@@ -1242,7 +1242,7 @@ return {
 - Timeout → caught after 30s, tries fallback
 
 ### 2. OpenAI Agents SDK
-**File:** [src/lib/agentWorkflow.ts](src/lib/agentWorkflow.ts)
+**File:** `src/lib/agentWorkflow.ts`
 
 ```typescript
 import { Agent, Runner, withTrace } from '@openai/agents'
@@ -1260,7 +1260,7 @@ const result = await runner.run(scanPlanner, messages)
 ```
 
 ### 3. Anthropic Claude Integration
-**File:** [src/lib/mcpRouter.ts](src/lib/mcpRouter.ts) callAnthropic()
+**File:** `src/lib/mcpRouter.ts` callAnthropic()
 
 ```typescript
 import Anthropic from '@anthropic-ai/sdk'
@@ -1277,7 +1277,7 @@ const response = await client.messages.create({
 ```
 
 ### 4. Docker Integration via Dockerode
-**File:** [src/lib/dockerManager.ts](src/lib/dockerManager.ts)
+**File:** `src/lib/dockerManager.ts`
 
 ```typescript
 import { spawn } from 'node:child_process'
@@ -1306,7 +1306,7 @@ child.stdout.on('data', (data) => {
 - Security: Tool runs as unprivileged user inside container
 
 ### 5. OpenAI ChatKit Widget (Optional)
-**File:** [src/components/ChatKitConsole.tsx](src/components/ChatKitConsole.tsx)
+**File:** `src/components/ChatKitConsole.tsx`
 
 ```typescript
 // Gated by NEXT_PUBLIC_CHATKIT_ENABLED='true'
@@ -1335,24 +1335,24 @@ import { ChatKit } from '@openai/chatkit-react'
 1. Create file: `src/app/api/[feature]/route.ts`
 2. Import `getCurrentUserServer` for auth check
 3. Follow error response pattern above
-4. Document in [README.md](README.md) or inline comments
+4. Document in `README.md` or inline comments
 
 ### Adding a Security Tool
-1. Define in [src/lib/toolsRouter.ts](src/lib/toolsRouter.ts) SECURITY_TOOLS array
+1. Define in `src/lib/toolsRouter.ts` SECURITY_TOOLS array
 2. Set `risk_level`, `max_execution_time`, `requires_auth`
-3. Docker image must be in [src/lib/toolImages.ts](src/lib/toolImages.ts)
+3. Docker image must be in `src/lib/toolImages.ts`
 4. Verify DockerManager can detect tool name
 
 ### Debugging Scan Failures
-1. Check [middleware.ts](middleware.ts) for auth/role issues
-2. Verify entitlements in [src/lib/policy/entitlementMiddleware.ts](src/lib/policy/entitlementMiddleware.ts)
+1. Check `middleware.ts` for auth/role issues
+2. Verify entitlements in `src/lib/policy/entitlementMiddleware.ts`
 3. Check scan_logs in Supabase for Docker errors
 4. Use `pnpm dev` with browser DevTools for WebSocket inspection
 
 ### Model Routing Issues
 1. Verify API keys set in environment
-2. Check [src/lib/mcpRouter.ts](src/lib/mcpRouter.ts) AI_MODELS array has model ID
-3. Review [src/app/api/set-model/route.ts](src/app/api/set-model/route.ts) for user preference override
+2. Check `src/lib/mcpRouter.ts` AI_MODELS array has model ID
+3. Review `src/app/api/set-model/route.ts` for user preference override
 4. Default fallback: gpt-4 if all providers unavailable
 
 ## Build & Deployment
@@ -1384,7 +1384,7 @@ REAL_EXECUTION=true  # Enable Docker execution
 ```
 
 ### Production (Vercel)
-- **Deploy:** Configured via [vercel.json](vercel.json) with Next.js 15 native support
+- **Deploy:** Configured via `vercel.json` with Next.js 15 native support
 - **Build command:** `pnpm install && pnpm build`
 - **Node version:** 20.x (optimized performance & security)
 - **Framework:** Next.js 15 App Router with native API routes
@@ -1467,7 +1467,7 @@ CHATKIT_WORKFLOW_ID=...               (optional ChatKit integration)
 - Build output cached; rebuilds only on code changes
 
 ### Docker for Tool Execution
-**File:** [docker/Dockerfile.kali](docker/Dockerfile.kali)
+**File:** `docker/Dockerfile.kali`
 
 Pentriarch uses **Kali Linux image** for security tools:
 ```dockerfile
@@ -1490,7 +1490,7 @@ spawn('docker', ['run', '--rm', 'kalilinux/kali:latest', 'nmap', ...args])
 ```
 
 ### TypeScript Configuration
-- **Alias `@/*`** maps to `src/*` ([tsconfig.json](tsconfig.json))
+- **Alias `@/*`** maps to `src/*` (`tsconfig.json`)
 - **Strict mode** enabled (catch more errors at compile time)
 - **skipLibCheck** true for faster builds
 - **Next.js 15 plugin** auto-enabled for type definitions
@@ -1518,7 +1518,7 @@ pnpm build  # Runs tsc --noEmit (type check)
 ```bash
 pnpm test   # Runs Jest with ts-jest preset
 ```
-Config in [jest.config.ts](jest.config.ts)
+Config in `jest.config.ts`
 
 ## Code Quality
 
@@ -1529,13 +1529,13 @@ Config in [jest.config.ts](jest.config.ts)
 
 ## Integration Points to Know
 
-- **OpenAI Agents SDK**: Used for scan planning (see [src/lib/agentWorkflow.ts](src/lib/agentWorkflow.ts))
+- **OpenAI Agents SDK**: Used for scan planning (see `src/lib/agentWorkflow.ts`)
 - **OpenAI ChatKit**: Optional UI widget (gated by `NEXT_PUBLIC_CHATKIT_ENABLED`)
-- **Dockerode**: Wraps Docker CLI; see [src/lib/dockerManager.ts](src/lib/dockerManager.ts) for spawn patterns
-- **Vercel Analytics**: Integrated in [src/app/layout.tsx](src/app/layout.tsx)
+- **Dockerode**: Wraps Docker CLI; see `src/lib/dockerManager.ts` for spawn patterns
+- **Vercel Analytics**: Integrated in `src/app/layout.tsx`
 
 ---
 
 **Last Updated**: January 2026  
 **Maintainers**: Tech-Rizon  
-**Contact**: Refer to [README.md](README.md) for contribution guidelines
+**Contact**: Refer to `README.md` for contribution guidelines

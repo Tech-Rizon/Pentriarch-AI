@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer } from '@/lib/supabase'
+import { getCurrentUserServer, type UserSettings } from '@/lib/supabase'
 
 // Mark as dynamic to skip build-time generation
 export const dynamic = 'force-dynamic'
@@ -165,7 +165,9 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    const existingCustomTools = settings?.branding?.custom_tools || []
+    const existingCustomTools = Array.isArray(settings?.branding?.custom_tools)
+      ? settings.branding.custom_tools
+      : []
     const updatedCustomTools = [...existingCustomTools, customTool]
 
     // Update user settings
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
         branding: {
           ...settings?.branding,
           custom_tools: updatedCustomTools
-        }
+        } as UserSettings['branding']
       }, { onConflict: 'user_id' })
 
     if (error) {
@@ -312,6 +314,7 @@ async function getToolUsageStats(toolId: string, userId: string) {
     const avgDuration = completedScans.length > 0
       ? Math.round(
           completedScans.reduce((acc, scan) => {
+            if (!scan.end_time || !scan.start_time) return acc
             const duration = new Date(scan.end_time).getTime() - new Date(scan.start_time).getTime()
             return acc + duration
           }, 0) / completedScans.length / 1000

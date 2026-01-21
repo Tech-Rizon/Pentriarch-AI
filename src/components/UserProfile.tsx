@@ -111,13 +111,13 @@ export default function UserProfile() {
           email: currentUser.email || '',
           full_name: currentUser.user_metadata?.full_name,
           avatar_url: currentUser.user_metadata?.avatar_url,
-          plan: currentUser.raw_user_meta_data?.plan || 'free',
+          plan: currentUser.user_metadata?.plan || 'free',
           created_at: currentUser.created_at,
           last_sign_in_at: currentUser.last_sign_in_at,
           scan_count: 0,
-          scan_limit: getPlanLimits(currentUser.raw_user_meta_data?.plan || 'free').scansPerMonth,
+          scan_limit: getPlanLimits(currentUser.user_metadata?.plan || 'free').scansPerMonth,
           usage_this_month: 0,
-          credits_remaining: currentUser.raw_user_meta_data?.credits
+          credits_remaining: currentUser.user_metadata?.credits
         }
 
         setUser(userData)

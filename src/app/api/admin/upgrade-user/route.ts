@@ -37,15 +37,16 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
-    const { email, newPlan } = body || {};
-    if (!email || !newPlan || !['free', 'pro', 'enterprise'].includes(newPlan)) {
+    const { email, newPlan } = body as { email?: string; newPlan?: string };
+    if (typeof email !== 'string' || typeof newPlan !== 'string' || !['free', 'pro', 'enterprise'].includes(newPlan)) {
       return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 });
     }
+    const nextPlan = newPlan as 'free' | 'pro' | 'enterprise';
 
     // Update user_profiles table
     const { data, error } = await supabase
       .from('user_profiles')
-      .update({ plan: newPlan })
+      .update({ plan: nextPlan })
       .eq('email', email);
 
     if (error) {

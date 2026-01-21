@@ -69,10 +69,11 @@ class DockerManager extends EventEmitter {
     }
     if (dockerHost.startsWith("tcp://")) {
       const url = new URL(dockerHost.replace("tcp://", "http://"));
+      const protocol = url.protocol.replace(":", "") as "http" | "https" | "ssh";
       return new Docker({
         host: url.hostname,
         port: Number.parseInt(url.port || "2375", 10),
-        protocol: url.protocol.replace(":", "")
+        protocol
       });
     }
     return new Docker();
@@ -87,7 +88,7 @@ class DockerManager extends EventEmitter {
     }
 
     await new Promise<void>((resolve, reject) => {
-      this.dockerClient.pull(image, (error, stream) => {
+      this.dockerClient.pull(image, (error: Error | null, stream?: NodeJS.ReadableStream) => {
         if (error) {
           reject(error);
           return;
@@ -96,7 +97,7 @@ class DockerManager extends EventEmitter {
           reject(new Error("Docker pull stream unavailable"));
           return;
         }
-        this.dockerClient.modem.followProgress(stream, (err) => {
+        this.dockerClient.modem.followProgress(stream, (err: Error | null) => {
           if (err) reject(err);
           else resolve();
         });

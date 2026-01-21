@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { getCurrentUserServer, getLatestPendingVerificationServer, getProjectByIdServer, getTargetByIdServer, markTargetVerifiedServer, updateTargetVerificationStatusServer } from "@/lib/supabase"
 
 export const dynamic = 'force-dynamic'
@@ -14,13 +14,14 @@ const fetchWithTimeout = async (url: string, timeoutMs: number) => {
   }
 }
 
-export async function POST(_request: Request, { params }: { params: { id: string } }) {
+export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getCurrentUserServer()
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const target = await getTargetByIdServer(params.id)
+  const target = await getTargetByIdServer(id)
   const project = await getProjectByIdServer(target.project_id)
   if (project.owner_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })

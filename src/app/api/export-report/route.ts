@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
 
     // Get scan and verify ownership
     const scan = await getScanByIdServer(scanId)
+    if (!scan) {
+      return NextResponse.json({ error: 'Scan not found' }, { status: 404 })
+    }
     if (scan.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -68,9 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get scan logs if raw output requested
-    let scanLogs = []
+    let scanLogs: Awaited<ReturnType<typeof getScanLogsServer>> = []
     if (includeRawOutput) {
-      const { getScanLogs } = await import('@/lib/supabase')
       scanLogs = await getScanLogsServer(scanId)
     }
 

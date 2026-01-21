@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -8,7 +8,98 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+type GenericTable = {
+  Row: any
+  Insert: any
+  Update: any
+  Relationships: []
+}
+
+export type Database = {
+  public: {
+    Tables: ({
+      scans: {
+        Row: Scan
+        Insert: Partial<Scan>
+        Update: Partial<Scan>
+        Relationships: []
+      }
+      reports: {
+        Row: Report
+        Insert: Partial<Report>
+        Update: Partial<Report>
+        Relationships: []
+      }
+      scan_logs: {
+        Row: ScanLog
+        Insert: Partial<ScanLog>
+        Update: Partial<ScanLog>
+        Relationships: []
+      }
+      notifications: {
+        Row: Notification
+        Insert: Partial<Notification>
+        Update: Partial<Notification>
+        Relationships: []
+      }
+      projects: {
+        Row: Project
+        Insert: Partial<Project>
+        Update: Partial<Project>
+        Relationships: []
+      }
+      targets: {
+        Row: Target
+        Insert: Partial<Target>
+        Update: Partial<Target>
+        Relationships: []
+      }
+      target_verifications: {
+        Row: TargetVerification
+        Insert: Partial<TargetVerification>
+        Update: Partial<TargetVerification>
+        Relationships: []
+      }
+      user_profiles: {
+        Row: User
+        Insert: Partial<User>
+        Update: Partial<User>
+        Relationships: []
+      }
+      user_settings: {
+        Row: UserSettings
+        Insert: Partial<UserSettings>
+        Update: Partial<UserSettings>
+        Relationships: []
+      }
+    } & Record<string, GenericTable>)
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
+}
+
+let supabaseClient: ReturnType<typeof createClient<Database>> | null = null
+
+const getSupabaseClient = () => {
+  requireSupabaseConfig()
+  if (!supabaseClient) {
+    supabaseClient = createClient<Database>(supabaseUrl!, supabaseAnonKey!)
+  }
+  return supabaseClient
+}
+
+export const supabase = new Proxy({} as ReturnType<typeof getSupabaseClient>, {
+  get(_target, prop) {
+    const client = getSupabaseClient()
+    const value = client[prop as keyof typeof client]
+    if (typeof value === 'function') {
+      return value.bind(client)
+    }
+    return value
+  }
+})
 
 const requireSupabaseConfig = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -22,9 +113,9 @@ const requireSupabaseServiceConfig = () => {
   }
 }
 
-export const getSupabaseServerClient = () => {
+export const getSupabaseServerClient = (): SupabaseClient<Database> => {
   requireSupabaseServiceConfig()
-  return createClient(supabaseUrl || '', supabaseServiceKey || '', {
+  return createClient<Database>(supabaseUrl || '', supabaseServiceKey || '', {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -148,6 +239,7 @@ export interface UserSettings {
   id: string
   user_id: string
   preferred_ai_model: string
+  ai_model_preferences?: Record<string, unknown>
   notification_preferences: {
     email: boolean
     browser: boolean
@@ -163,6 +255,8 @@ export interface UserSettings {
     company_name?: string
     logo_url?: string
     theme_color?: string
+    custom_tools?: Array<Record<string, unknown>>
+    tool_configs?: Record<string, unknown>
   }
   created_at: string
   updated_at: string
@@ -267,7 +361,7 @@ export const getCurrentUserServer = async (request?: NextRequest) => {
     if (!accessToken) {
       return null
     }
-    const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+    const supabaseServer = createClient<Database>(supabaseUrl!, supabaseAnonKey!, {
       global: { headers: { Authorization: `Bearer ${accessToken}` } }
     })
     const { data: { user } } = await supabaseServer.auth.getUser()
@@ -282,7 +376,7 @@ export const getCurrentUserServer = async (request?: NextRequest) => {
 export const getCurrentUserClient = async () => {
   requireSupabaseConfig()
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data: { user }, error } = await getSupabaseClient().auth.getUser()
     if (error) {
       const errorName = (error as { name?: string })?.name || ''
       const status = (error as { status?: number })?.status
@@ -305,7 +399,7 @@ export const getCurrentUserClient = async () => {
 export const getAccessTokenClient = async () => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase.auth.getSession()
+    const { data, error } = await getSupabaseClient().auth.getSession()
     if (error) {
       const errorName = (error as { name?: string })?.name || ''
       const status = (error as { status?: number })?.status
@@ -328,7 +422,7 @@ export const getAccessTokenClient = async () => {
 export const signOut = async () => {
   requireSupabaseConfig()
   try {
-    await supabase.auth.signOut()
+    await getSupabaseClient().auth.signOut()
   } catch (error) {
     console.warn('Supabase sign out error:', error)
   }
@@ -340,24 +434,24 @@ export const createScan = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated
   return insertScan(scan)
 }
 
-export const insertScan = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated_at'>) => {
+export const insertScan = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated_at'>): Promise<Scan> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('scans')
       .insert([scan])
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as Scan
   } catch (error) {
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const insertScanServer = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated_at'>) => {
+export const insertScanServer = async (scan: Omit<Scan, 'id' | 'created_at' | 'updated_at'>): Promise<Scan> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     const { data, error } = await supabaseServer
@@ -367,7 +461,7 @@ export const insertScanServer = async (scan: Omit<Scan, 'id' | 'created_at' | 'u
       .single()
 
     if (error) throw error
-    return data
+    return data as Scan
   } catch (error) {
     if (error && typeof error === 'object' && (error as { code?: string }).code === '23503') {
       await ensureUserProfileByIdServer(scan.user_id)
@@ -377,14 +471,14 @@ export const insertScanServer = async (scan: Omit<Scan, 'id' | 'created_at' | 'u
         .select()
         .single()
       if (retryError) throw retryError
-      return data
+      return data as Scan
     }
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const updateScanStatus = async (scanId: string, status: Scan['status'], metadata?: Record<string, unknown>) => {
+export const updateScanStatus = async (scanId: string, status: Scan['status'], metadata?: Record<string, unknown>): Promise<Scan> => {
   requireSupabaseConfig()
   try {
     const updates: Partial<Scan> = {
@@ -400,7 +494,7 @@ export const updateScanStatus = async (scanId: string, status: Scan['status'], m
       updates.metadata = metadata
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('scans')
       .update(updates)
       .eq('id', scanId)
@@ -408,7 +502,7 @@ export const updateScanStatus = async (scanId: string, status: Scan['status'], m
       .single()
 
     if (error) throw error
-    return data
+    return data as Scan
   } catch (error) {
     console.error('Supabase update error:', error)
     throw error
@@ -420,7 +514,7 @@ export const updateScanStatusServer = async (
   status: Scan['status'],
   metadata?: Record<string, unknown>,
   extraUpdates?: Partial<Scan>
-) => {
+): Promise<Scan | null> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     let mergedMetadata = metadata
@@ -460,7 +554,7 @@ export const updateScanStatusServer = async (
       .maybeSingle()
 
     if (error) throw error
-    return data
+    return (data as Scan) ?? null
   } catch (error) {
     if (error && typeof error === 'object' && (error as { code?: string }).code === 'PGRST116') {
       console.warn('Supabase update warning: no rows updated for scan', scanId)
@@ -471,41 +565,41 @@ export const updateScanStatusServer = async (
   }
 }
 
-export const getScansForUser = async (userId: string) => {
+export const getScansForUser = async (userId: string): Promise<Scan[]> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('scans')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data
+    return (data as Scan[]) || []
   } catch (error) {
     console.error('Supabase query error:', error)
     throw error
   }
 }
 
-export const getScanById = async (scanId: string) => {
+export const getScanById = async (scanId: string): Promise<Scan> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('scans')
       .select('*')
       .eq('id', scanId)
       .single()
 
     if (error) throw error
-    return data
+    return data as Scan
   } catch (error) {
     console.error('Supabase query error:', error)
     throw error
   }
 }
 
-export const getScanByIdServer = async (scanId: string) => {
+export const getScanByIdServer = async (scanId: string): Promise<Scan | null> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     const { data, error } = await supabaseServer
@@ -515,31 +609,31 @@ export const getScanByIdServer = async (scanId: string) => {
       .maybeSingle()
 
     if (error) throw error
-    return data
+    return (data as Scan) ?? null
   } catch (error) {
     console.error('Supabase query error:', error)
     throw error
   }
 }
 
-export const insertReport = async (report: Omit<Report, 'id' | 'generated_at'>) => {
+export const insertReport = async (report: Omit<Report, 'id' | 'generated_at'>): Promise<Report> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('reports')
       .insert([{ ...report, generated_at: new Date().toISOString() }])
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as Report
   } catch (error) {
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const insertReportServer = async (report: Omit<Report, 'id' | 'generated_at'>) => {
+export const insertReportServer = async (report: Omit<Report, 'id' | 'generated_at'>): Promise<Report> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     const { data, error } = await supabaseServer
@@ -549,24 +643,24 @@ export const insertReportServer = async (report: Omit<Report, 'id' | 'generated_
       .single()
 
     if (error) throw error
-    return data
+    return data as Report
   } catch (error) {
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const getReportByScanId = async (scanId: string) => {
+export const getReportByScanId = async (scanId: string): Promise<Report | null> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('reports')
       .select('*')
       .eq('scan_id', scanId)
       .maybeSingle()
 
     if (error) throw error
-    return data
+    return (data as Report) ?? null
   } catch (error) {
     if (error && typeof error === 'object' && (error as { code?: string }).code === 'PGRST116') {
       return null
@@ -576,7 +670,7 @@ export const getReportByScanId = async (scanId: string) => {
   }
 }
 
-export const getReportByScanIdServer = async (scanId: string) => {
+export const getReportByScanIdServer = async (scanId: string): Promise<Report | null> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     const { data, error } = await supabaseServer
@@ -586,7 +680,7 @@ export const getReportByScanIdServer = async (scanId: string) => {
       .maybeSingle()
 
     if (error) throw error
-    return data
+    return (data as Report) ?? null
   } catch (error) {
     if (error && typeof error === 'object' && (error as { code?: string }).code === 'PGRST116') {
       return null
@@ -596,24 +690,24 @@ export const getReportByScanIdServer = async (scanId: string) => {
   }
 }
 
-export const insertScanLog = async (log: Omit<ScanLog, 'id'>) => {
+export const insertScanLog = async (log: Omit<ScanLog, 'id'>): Promise<ScanLog> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('scan_logs')
       .insert([log])
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as ScanLog
   } catch (error) {
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const insertScanLogServer = async (log: Omit<ScanLog, 'id'>) => {
+export const insertScanLogServer = async (log: Omit<ScanLog, 'id'>): Promise<ScanLog> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     const { data, error } = await supabaseServer
@@ -623,31 +717,31 @@ export const insertScanLogServer = async (log: Omit<ScanLog, 'id'>) => {
       .single()
 
     if (error) throw error
-    return data
+    return data as ScanLog
   } catch (error) {
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const getScanLogs = async (scanId: string) => {
+export const getScanLogs = async (scanId: string): Promise<ScanLog[]> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('scan_logs')
       .select('*')
       .eq('scan_id', scanId)
       .order('timestamp', { ascending: true })
 
     if (error) throw error
-    return data
+    return (data as ScanLog[]) || []
   } catch (error) {
     console.error('Supabase query error:', error)
     throw error
   }
 }
 
-export const getScanLogsServer = async (scanId: string) => {
+export const getScanLogsServer = async (scanId: string): Promise<ScanLog[]> => {
   const supabaseServer = getSupabaseServerClient()
   try {
     const { data, error } = await supabaseServer
@@ -657,51 +751,51 @@ export const getScanLogsServer = async (scanId: string) => {
       .order('timestamp', { ascending: true })
 
     if (error) throw error
-    return data
+    return (data as ScanLog[]) || []
   } catch (error) {
     console.error('Supabase query error:', error)
     throw error
   }
 }
 
-export const createNotification = async (notification: Omit<Notification, 'id' | 'created_at'>) => {
+export const createNotification = async (notification: Omit<Notification, 'id' | 'created_at'>): Promise<Notification> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('notifications')
       .insert([{ ...notification, created_at: new Date().toISOString() }])
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as Notification
   } catch (error) {
     console.error('Supabase insert error:', error)
     throw error
   }
 }
 
-export const getUserNotifications = async (userId: string) => {
+export const getUserNotifications = async (userId: string): Promise<Notification[]> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data
+    return (data as Notification[]) || []
   } catch (error) {
     console.error('Supabase query error:', error)
     throw error
   }
 }
 
-export const markNotificationAsRead = async (notificationId: string) => {
+export const markNotificationAsRead = async (notificationId: string): Promise<Notification> => {
   requireSupabaseConfig()
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('notifications')
       .update({ read: true })
       .eq('id', notificationId)
@@ -709,14 +803,14 @@ export const markNotificationAsRead = async (notificationId: string) => {
       .single()
 
     if (error) throw error
-    return data
+    return data as Notification
   } catch (error) {
     console.error('Supabase update error:', error)
     throw error
   }
 }
 
-export const ensureDefaultProjectServer = async (userId: string) => {
+export const ensureDefaultProjectServer = async (userId: string): Promise<Project> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('projects')
@@ -738,7 +832,7 @@ export const ensureDefaultProjectServer = async (userId: string) => {
   return created as Project
 }
 
-export const getProjectByIdServer = async (projectId: string) => {
+export const getProjectByIdServer = async (projectId: string): Promise<Project> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('projects')
@@ -750,7 +844,7 @@ export const getProjectByIdServer = async (projectId: string) => {
   return data as Project
 }
 
-export const listTargetsForOwnerServer = async (userId: string) => {
+export const listTargetsForOwnerServer = async (userId: string): Promise<Target[]> => {
   const supabaseServer = getSupabaseServerClient()
   const { data: projects, error: projectError } = await supabaseServer
     .from('projects')
@@ -768,10 +862,10 @@ export const listTargetsForOwnerServer = async (userId: string) => {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as Target[]
+  return (data as Target[]) || []
 }
 
-export const createTargetServer = async (projectId: string, target: Omit<Target, 'id' | 'created_at' | 'project_id'>) => {
+export const createTargetServer = async (projectId: string, target: Omit<Target, 'id' | 'created_at' | 'project_id'>): Promise<Target> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('targets')
@@ -783,7 +877,7 @@ export const createTargetServer = async (projectId: string, target: Omit<Target,
   return data as Target
 }
 
-export const getTargetByIdServer = async (targetId: string) => {
+export const getTargetByIdServer = async (targetId: string): Promise<Target> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('targets')
@@ -795,7 +889,9 @@ export const getTargetByIdServer = async (targetId: string) => {
   return data as Target
 }
 
-export const createTargetVerificationServer = async (verification: Omit<TargetVerification, 'id' | 'created_at' | 'status'> & { status?: TargetVerification['status'] }) => {
+export const createTargetVerificationServer = async (
+  verification: Omit<TargetVerification, 'id' | 'created_at' | 'status'> & { status?: TargetVerification['status'] }
+): Promise<TargetVerification> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('target_verifications')
@@ -810,7 +906,7 @@ export const createTargetVerificationServer = async (verification: Omit<TargetVe
   return data as TargetVerification
 }
 
-export const getLatestPendingVerificationServer = async (targetId: string) => {
+export const getLatestPendingVerificationServer = async (targetId: string): Promise<TargetVerification> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('target_verifications')
@@ -825,7 +921,11 @@ export const getLatestPendingVerificationServer = async (targetId: string) => {
   return data as TargetVerification
 }
 
-export const updateTargetVerificationStatusServer = async (verificationId: string, status: TargetVerification['status'], verifiedAt?: string) => {
+export const updateTargetVerificationStatusServer = async (
+  verificationId: string,
+  status: TargetVerification['status'],
+  verifiedAt?: string
+): Promise<TargetVerification> => {
   const supabaseServer = getSupabaseServerClient()
   const updates: Partial<TargetVerification> = { status }
   if (verifiedAt) {
@@ -843,7 +943,7 @@ export const updateTargetVerificationStatusServer = async (verificationId: strin
   return data as TargetVerification
 }
 
-export const markTargetVerifiedServer = async (targetId: string) => {
+export const markTargetVerifiedServer = async (targetId: string): Promise<Target> => {
   const supabaseServer = getSupabaseServerClient()
   const { data, error } = await supabaseServer
     .from('targets')

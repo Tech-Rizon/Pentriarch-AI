@@ -134,15 +134,15 @@ export default function PerformanceAnalyticsDashboard() {
     }
   }
 
-  const getSeverityBadge = (severity: string) => {
-    const variants = {
+  const getSeverityBadge = (severity: string): 'default' | 'destructive' | 'outline' | 'secondary' => {
+    const variants: Record<string, 'default' | 'destructive' | 'outline' | 'secondary'> = {
       critical: 'destructive',
       high: 'destructive',
       warning: 'secondary',
       medium: 'outline',
       low: 'outline'
     }
-    return variants[severity as keyof typeof variants] || 'outline'
+    return variants[severity] || 'outline'
   }
 
   if (isLoading && !metrics) {
@@ -165,7 +165,7 @@ export default function PerformanceAnalyticsDashboard() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Performance Analytics</h2>
           <p className="text-muted-foreground">
-            Real-time monitoring and performance insights • Last updated: {lastUpdate.toLocaleTimeString()}
+            Real-time monitoring and performance insights - Last updated: {lastUpdate.toLocaleTimeString()}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -627,3 +627,4 @@ export default function PerformanceAnalyticsDashboard() {
     </div>
   )
 }
+

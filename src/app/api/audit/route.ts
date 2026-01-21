@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer, getSupabaseServerClient } from '@/lib/supabase'
+import { getCurrentUserServer, getSupabaseServerClient, type Report, type ScanLog, type Scan } from '@/lib/supabase'
 
 // Mark as dynamic to skip build-time generation
 export const dynamic = 'force-dynamic'
@@ -25,9 +25,14 @@ interface AuditScanData {
   }
 }
 
+type AuditScanWithRelations = AuditScanData & {
+  scan_logs?: ScanLog[]
+  reports?: Report[]
+}
+
 export async function GET(request: NextRequest) {
   try {
-  const user = await getCurrentUserServer(request)
+    const user = await getCurrentUserServer(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -77,13 +82,13 @@ export async function GET(request: NextRequest) {
       query = query.lte('created_at', endDate)
     }
     if (action) {
-      query = query.eq('status', action)
+      query = query.eq('status', action as Scan['status'])
     }
     if (scanId) {
       query = query.eq('id', scanId)
     }
 
-    const { data: auditData, error } = await query
+    const { data: auditData, error } = await query.returns<AuditScanWithRelations[]>()
 
     if (error) {
       throw error
@@ -97,7 +102,7 @@ export async function GET(request: NextRequest) {
 
     if (startDate) countQuery = countQuery.gte('created_at', startDate)
     if (endDate) countQuery = countQuery.lte('created_at', endDate)
-    if (action) countQuery = countQuery.eq('status', action)
+    if (action) countQuery = countQuery.eq('status', action as Scan['status'])
     if (scanId) countQuery = countQuery.eq('id', scanId)
 
     const { count } = await countQuery
@@ -207,25 +212,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Log custom audit event
-    const auditEvent = {
-      scan_id: scanId || null,
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message: `User action: ${action}`,
-      raw_output: JSON.stringify({
-        action,
-        details,
-        metadata,
-        user_id: user.id,
-        user_email: user.email,
-        timestamp: new Date().toISOString(),
-        ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-        user_agent: request.headers.get('user-agent') || 'unknown'
-      })
-    }
+    const timestamp = new Date().toISOString()
 
     // If scanId provided, log to scan_logs table
     if (scanId) {
+      const auditEvent: Omit<ScanLog, 'id'> = {
+        scan_id: scanId,
+        timestamp,
+        level: 'info',
+        message: `User action: ${action}`,
+        raw_output: JSON.stringify({
+          action,
+          details,
+          metadata,
+          user_id: user.id,
+          user_email: user.email,
+          timestamp,
+          ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+          user_agent: request.headers.get('user-agent') || 'unknown'
+        })
+      }
       const supabaseServer = getSupabaseServerClient()
       const { error } = await supabaseServer
         .from('scan_logs')
@@ -240,7 +246,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Audit event logged',
       eventId: `audit-${Date.now()}`,
-      timestamp: auditEvent.timestamp
+      timestamp
     })
 
   } catch (error) {
@@ -280,6 +286,7 @@ export async function PUT(request: NextRequest) {
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+      .returns<AuditScanWithRelations[]>()
 
     if (error) {
       throw error
@@ -319,14 +326,12 @@ export async function PUT(request: NextRequest) {
       // Convert to CSV format for compliance teams
       let csv = 'Timestamp,Action,User,Target,Tool,Status,Risk_Level,Duration,Details\n'
 
-      if (auditData) {
-        for (const scan of auditData as Array<Record<string, unknown>>) {
-          const duration = scan.end_time && scan.start_time
-            ? Math.round((new Date(scan.end_time as string).getTime() - new Date(scan.start_time as string).getTime()) / 1000)
+      for (const scan of auditData ?? []) {
+        const duration = scan.end_time && scan.start_time
+            ? Math.round((new Date(scan.end_time).getTime() - new Date(scan.start_time).getTime()) / 1000)
             : 'N/A'
 
-          csv += `${scan.created_at},scan,${user.email},${scan.target},${scan.tool_used || 'N/A'},${scan.status},${(scan.metadata as Record<string, unknown>)?.risk_assessment || 'unknown'},${duration},"${(scan.prompt as string)?.replace(/"/g, '""') || 'N/A'}"\n`
-        }
+        csv += `${scan.created_at},scan,${user.email},${scan.target},${scan.tool_used || 'N/A'},${scan.status},${scan.metadata?.risk_assessment || 'unknown'},${duration},"${scan.prompt?.replace(/"/g, '""') || 'N/A'}"\n`
       }
 
       return new NextResponse(csv, {

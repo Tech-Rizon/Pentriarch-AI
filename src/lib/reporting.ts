@@ -4,9 +4,9 @@ import { mcpRouter } from '@/lib/mcpRouter'
 
 type ScanRecord = {
   id: string
-  tool_used: string
+  tool_used?: string
   target: string
-  command_executed: string
+  command_executed?: string
   start_time?: string
   end_time?: string
 }
@@ -20,13 +20,13 @@ export const generateDetailedReportForScan = async (scanId: string) => {
 }
 
 export const generateDetailedReport = async (scan: ScanRecord & { metadata?: Record<string, unknown> }) => {
+  const toolUsed =
+    scan.tool_used || (scan.metadata?.tool_suggested as string | undefined) || 'unknown'
+  const commandExecuted =
+    scan.command_executed || (scan.metadata?.command_generated as string | undefined) || ''
+
   try {
     const logs = await getScanLogsServer(scan.id)
-
-    const toolUsed =
-      scan.tool_used || (scan.metadata?.tool_suggested as string | undefined) || 'unknown'
-    const commandExecuted =
-      scan.command_executed || (scan.metadata?.command_generated as string | undefined) || ''
 
     const output = logs
       .filter(log => log.raw_output)

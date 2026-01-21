@@ -46,7 +46,7 @@ export default function Dashboard() {
         router.push('/auth')
         return
       }
-      setUser(currentUser as AppUser)
+      setUser(currentUser as unknown as AppUser)
     } catch (error) {
       console.error('Failed to load user:', error)
       router.push('/auth')

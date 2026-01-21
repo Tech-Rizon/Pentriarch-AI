@@ -414,7 +414,7 @@ export default function SecurityWorkspace() {
 
       {/* Main Workspace */}
       <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanelGroup orientation="horizontal" className="h-full">
           {/* Center Panel - Results/Sandbox */}
           <ResizablePanel defaultSize={75} minSize={50}>
             <div className="h-full flex flex-col bg-slate-900/50">

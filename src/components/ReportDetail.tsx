@@ -214,7 +214,7 @@ export default function ReportDetail({ scanId, onClose }: ReportDetailProps) {
             <div>
               <h1 className="text-3xl font-bold text-white">Security Report</h1>
               <p className="text-slate-400">
-                {scan?.target} • {scan?.tool_used} • {scan ? new Date(scan.generated_at || scan.start_time).toLocaleDateString() : ''}
+                {scan?.target} • {scan?.tool_used} • {scan ? new Date(report?.generated_at || scan.start_time).toLocaleDateString() : ''}
               </p>
             </div>
           </div>

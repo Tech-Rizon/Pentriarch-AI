@@ -182,7 +182,8 @@ export default function UserProfileManager() {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setShowPasswordForm(false)
     } catch (error: unknown) {
-      setError(`Failed to update password: ${error.message}`)
+      const message = error instanceof Error ? error.message : String(error)
+      setError(`Failed to update password: ${message}`)
     } finally {
       setIsSaving(false)
     }

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserServer } from '@/lib/supabase'
+import { getCurrentUserServer, type UserSettings } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import { AI_MODELS } from '@/lib/mcpRouter'
 
@@ -154,14 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare settings update
-    const settingsUpdate: {
-      user_id: string
-      updated_at: string
-      preferred_ai_model?: string
-      notification_preferences?: unknown
-      api_keys?: unknown
-      branding?: unknown
-    } = {
+    const settingsUpdate: Partial<UserSettings> & { user_id: string; updated_at: string } = {
       user_id: user.id,
       updated_at: new Date().toISOString()
     }
@@ -171,16 +164,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (notification_preferences) {
-      settingsUpdate.notification_preferences = notification_preferences
+      settingsUpdate.notification_preferences = notification_preferences as UserSettings['notification_preferences']
     }
 
     if (api_keys) {
       // Encrypt API keys (in production, use proper encryption)
-      settingsUpdate.api_keys = api_keys
+      settingsUpdate.api_keys = api_keys as UserSettings['api_keys']
     }
 
     if (branding) {
-      settingsUpdate.branding = branding
+      settingsUpdate.branding = branding as UserSettings['branding']
     }
 
     // Update settings
@@ -304,6 +297,10 @@ export async function PATCH(request: NextRequest) {
 
       case 'toggle_feature': {
         const { feature, enabled } = data
+        const allowedFeatures = ['email', 'browser', 'scan_complete', 'vulnerabilities'] as const
+        if (!allowedFeatures.includes(feature)) {
+          return NextResponse.json({ error: 'Invalid notification preference' }, { status: 400 })
+        }
 
         // Get current settings
         const { data: currentSettings } = await supabase
@@ -312,9 +309,12 @@ export async function PATCH(request: NextRequest) {
           .eq('user_id', user.id)
           .single()
 
-        const updatedPreferences = {
-          ...currentSettings?.notification_preferences,
-          [feature]: enabled
+        const updatedPreferences: UserSettings['notification_preferences'] = {
+          email: currentSettings?.notification_preferences?.email ?? false,
+          browser: currentSettings?.notification_preferences?.browser ?? false,
+          scan_complete: currentSettings?.notification_preferences?.scan_complete ?? false,
+          vulnerabilities: currentSettings?.notification_preferences?.vulnerabilities ?? false,
+          [feature]: Boolean(enabled)
         }
 
         const { error: updateError } = await supabase
